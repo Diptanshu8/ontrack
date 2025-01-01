@@ -50,7 +50,7 @@ start_server () {
 	echo "SETTING UP DATABASE"
 	setup_db
 	echo "STARTING SERVER AT PORT 3000"
-	bundle exec rails s
+	bundle exec rails s -b 0.0.0.0
 }
 
 if [[ "$1" == "start" ]]
