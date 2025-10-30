@@ -11,6 +11,8 @@ gem 'webpacker', '~> 6.0.0.beta.2'
 gem 'bcrypt', '~> 3.1.7'
 gem 'chronic', '~> 0.10.2'
 gem 'bootsnap', '>= 1.4.2', require: false
+gem 'rack-cors'
+gem 'jwt'
 
 group :development, :test do
   gem 'byebug', platforms: [:mri, :mingw, :x64_mingw]

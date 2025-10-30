@@ -54,10 +54,28 @@ friendly.
 - [Install on Ubuntu 16.04+](docs/ubuntu_install.md)
 - Spin up an instance (for free) using the Heroku deploy button below. Heroku account is required.
 
+### Database Setup
+
+The application uses PostgreSQL and creates the following databases:
+- `ontrack_development` - Development database
+- `ontrack_test` - Test database
+
+**Database Location:** PostgreSQL databases are stored in the PostgreSQL data directory:
+- macOS (Homebrew): `/opt/homebrew/var/postgresql@14/`
+- Linux: `/var/lib/postgresql/data/`
+
+To create the databases:
+```bash
+bundle exec rake db:create
+bundle exec rake db:migrate
+```
+
 ### Creating a user
 - `bundle exec rails c` to run Rails console
 - `User.create!(username: "...", password: "...")` The username and password will be hashed.
 - If you ever need to change your username/password: `User.first.update!(username: "...", password: "...")`
+
+**Note:** For quick testing, you can use: `User.create!(username: "admin", password: "password123")`
 
 ## Hosting your own
 I'd recommend using [Heroku](https://heroku.com) since it's super simple (and free) to

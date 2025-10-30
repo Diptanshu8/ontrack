@@ -17,6 +17,9 @@ Rails.application.routes.draw do
 
   namespace :api do
     namespace :v1 do
+      post 'auth/login', to: 'auth#login'
+      get 'auth/validate', to: 'auth#validate'
+
       resources :expenses, only: [:index, :create, :destroy, :update] do
         collection do
           post :bulk_create
