@@ -47,7 +47,8 @@ module Api; module V1
         paid_at: params.fetch(:paid_at, expense.paid_at),
         amount: params.fetch(:amount, expense.amount),
       )
-      render json: nil, status: successful ? 200 : 500
+      # Return the updated expense so clients can refresh their local state
+      render json: expense, status: successful ? 200 : 500
     end
 
     private
