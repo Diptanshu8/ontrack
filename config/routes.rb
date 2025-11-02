@@ -29,6 +29,7 @@ Rails.application.routes.draw do
       resources :reports do
         get :year, on: :collection
         get :month, on: :collection
+        get :available_years, on: :collection
       end
       resources :goals, only: [:index] do
         put :update, on: :collection

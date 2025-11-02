@@ -71,6 +71,17 @@ module Api; module V1
         monthly_goal: User.first.monthly_goal
       }
     end
+    
+    def available_years
+      # Get distinct years from expenses
+      years = ActiveRecord::Base.connection.execute(%{
+        SELECT DISTINCT EXTRACT(YEAR FROM paid_at)::integer AS year
+        FROM expenses
+        ORDER BY year DESC
+      }).map { |row| row['year'].to_i }
+      
+      render json: { years: years }
+    end
 
     private
 
