@@ -2,8 +2,22 @@ module Api; module V1
   class ExpensesController < BaseController
     def index
       expenses = ::Expense.all
+      
+      # Support both timestamp-based and date-based filtering
       expenses = expenses.where('paid_at >= ?', Time.at(params[:paid_after].to_i).to_datetime) if params[:paid_after].present?
       expenses = expenses.where('paid_at <= ?', Time.at(params[:paid_before].to_i).to_datetime) if params[:paid_before].present?
+      
+      # Add support for start_date and end_date (YYYY-MM-DD format)
+      if params[:start_date].present?
+        start_date = Date.parse(params[:start_date])
+        expenses = expenses.where('paid_at >= ?', start_date.beginning_of_day)
+      end
+      
+      if params[:end_date].present?
+        end_date = Date.parse(params[:end_date])
+        expenses = expenses.where('paid_at <= ?', end_date.end_of_day)
+      end
+      
       expenses = expenses.where("lower(description) ILIKE ?", "%#{params[:search].strip}%") if params[:search]&.strip.present?
       expenses = expenses.where(category_id: params[:category_id]) if params[:category_id].present?
       expenses = expenses.includes(:category) if params[:include_category] == true.to_s

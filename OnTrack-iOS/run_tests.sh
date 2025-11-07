@@ -1,129 +1,168 @@
 #!/bin/bash
 
-# OnTrack iOS Test Runner with Real-Time Logging
-# Usage: ./run_tests.sh [test_suite_name]
+# Run UI Tests Only
+# Assumes test server is already running on port 3001
+# Usage: ./run_tests.sh [--serial] [--verbose]
 
-cd "$(dirname "$0")/OnTrack"
+set -e
 
-# Colors for output
+IOS_ROOT="/Users/djamgade/personal/ontrack/ontrack/OnTrack-iOS/OnTrack"
+SIMULATOR_NAME="iPhone 17"
+LOG_FILE="/tmp/ontrack_tests_$(date +%Y%m%d_%H%M%S).log"
+
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+CYAN='\033[0;36m'
+NC='\033[0m'
 
+log() {
+    echo -e "${BLUE}▶${NC} $1"
+}
+
+success() {
+    echo -e "${GREEN}✅ $1${NC}"
+}
+
+error() {
+    echo -e "${RED}❌ $1${NC}"
+}
+
+warn() {
+    echo -e "${YELLOW}⚠️  $1${NC}"
+}
+
+info() {
+    echo -e "${CYAN}ℹ️  $1${NC}"
+}
+
+# Parse arguments
+SERIAL_MODE=false
+VERBOSE_MODE=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -s|--serial)
+            SERIAL_MODE=true
+            shift
+            ;;
+        -v|--verbose)
+            VERBOSE_MODE=true
+            shift
+            ;;
+        -h|--help)
+            echo ""
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  -s, --serial    Run tests serially (no parallel execution)"
+            echo "  -v, --verbose   Show verbose output"
+            echo "  -h, --help      Show this help message"
+            echo ""
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
+echo ""
 echo "======================================"
-echo "🧪 OnTrack iOS Automated Tests"
+echo "🧪 Running UI Tests"
 echo "======================================"
+info "Mode: $([ "$SERIAL_MODE" = true ] && echo "Serial" || echo "Parallel")"
+info "Verbose: $([ "$VERBOSE_MODE" = true ] && echo "Yes" || echo "No")"
+info "Log file: $LOG_FILE"
 echo ""
 
 # Check if test server is running
-echo -n "🔍 Checking test server (localhost:3001)... "
-if curl -s http://localhost:3001/api/v1/categories > /dev/null 2>&1; then
-    echo -e "${GREEN}✅ Running${NC}"
-else
-    echo -e "${RED}❌ Not running!${NC}"
+if ! lsof -i :3001 -t >/dev/null 2>&1 ; then
+    error "Test server not running on port 3001"
     echo ""
-    echo "Starting test server..."
-    cd ../..
-    RAILS_ENV=test bundle exec rails s -b 0.0.0.0 -p 3001 > log/test_server.log 2>&1 &
-    TEST_SERVER_PID=$!
-    echo "Test server PID: $TEST_SERVER_PID"
-    sleep 5
-    cd OnTrack-iOS/OnTrack
+    info "Start server first: bash start_test_server.sh"
+    exit 1
 fi
 
+success "Test server detected on port 3001"
 echo ""
 
-# Determine which tests to run
-if [ -z "$1" ]; then
-    TEST_TARGET="OnTrackUITests"
-    echo "📋 Running all tests..."
-else
-    TEST_TARGET="OnTrackUITests/$1"
-    echo "📋 Running: $1"
-fi
-
-echo ""
-echo "======================================"
-echo "🚀 Starting Test Execution"
-echo "======================================"
-echo ""
-
-# Run tests with real-time output
-xcodebuild test \
+# Build test target
+log "Building test target..."
+cd "$IOS_ROOT"
+xcodebuild build-for-testing \
     -project OnTrack.xcodeproj \
     -scheme OnTrack \
-    -destination 'platform=iOS Simulator,name=iPhone 17,OS=latest' \
-    -parallel-testing-enabled NO \
-    -only-testing:$TEST_TARGET 2>&1 | \
-    while IFS= read -r line; do
-        # Test suite started
-        if echo "$line" | grep -q "Test Suite.*started"; then
-            suite=$(echo "$line" | sed -n "s/.*Test Suite '\(.*\)' started.*/\1/p")
-            echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-            echo -e "${BLUE}📦 Test Suite: $suite${NC}"
-            echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        fi
-        
-        # Test case started
-        if echo "$line" | grep -q "Test Case.*started"; then
-            test=$(echo "$line" | sed -n "s/.*Test Case '-\[\(.*\)\]' started.*/\1/p")
-            echo -e "${YELLOW}  ▶️  $test${NC}"
-        fi
-        
-        # Test case passed
-        if echo "$line" | grep -q "Test Case.*passed"; then
-            test=$(echo "$line" | sed -n "s/.*Test Case '-\[\(.*\)\]' passed.*/\1/p")
-            time=$(echo "$line" | sed -n "s/.*(\(.*\) seconds).*/\1/p")
-            echo -e "${GREEN}  ✅ $test ${NC}(${time}s)"
-        fi
-        
-        # Test case failed
-        if echo "$line" | grep -q "Test Case.*failed"; then
-            test=$(echo "$line" | sed -n "s/.*Test Case '-\[\(.*\)\]' failed.*/\1/p")
-            time=$(echo "$line" | sed -n "s/.*(\(.*\) seconds).*/\1/p")
-            echo -e "${RED}  ❌ $test ${NC}(${time}s)"
-        fi
-        
-        # Print statements from tests (our custom logs)
-        if echo "$line" | grep -q "🧪\|✅\|❌\|📱\|🔐\|📡\|🧹"; then
-            echo "     $line"
-        fi
-        
-        # Build status
-        if echo "$line" | grep -q "BUILD SUCCEEDED"; then
-            echo -e "${GREEN}✅ BUILD SUCCEEDED${NC}"
-        fi
-        
-        if echo "$line" | grep -q "TEST SUCCEEDED"; then
-            echo ""
-            echo -e "${GREEN}╔════════════════════════════════════╗${NC}"
-            echo -e "${GREEN}║   🎉 ALL TESTS PASSED! 🎉          ║${NC}"
-            echo -e "${GREEN}╚════════════════════════════════════╝${NC}"
-        fi
-        
-        if echo "$line" | grep -q "TEST FAILED"; then
-            echo ""
-            echo -e "${RED}╔════════════════════════════════════╗${NC}"
-            echo -e "${RED}║   ⚠️  TESTS FAILED  ⚠️              ║${NC}"
-            echo -e "${RED}╚════════════════════════════════════╝${NC}"
-        fi
-        
-        # Errors and failures
-        if echo "$line" | grep -q "XCTAssertTrue failed"; then
-            msg=$(echo "$line" | sed -n 's/.*XCTAssertTrue failed - \(.*\)/\1/p')
-            echo -e "${RED}     ⚠️  Assertion: $msg${NC}"
-        fi
-    done
+    -destination "platform=iOS Simulator,name=$SIMULATOR_NAME,OS=latest" \
+    > /tmp/xcode_build.log 2>&1
+
+if [ $? -eq 0 ]; then
+    success "Build succeeded"
+else
+    error "Build failed. Check /tmp/xcode_build.log"
+    exit 1
+fi
+echo ""
+
+# Boot simulator and open window
+log "Preparing simulator..."
+SIMULATOR_ID=$(xcrun simctl list devices | grep "$SIMULATOR_NAME" | grep -v "unavailable" | head -1 | grep -o '[A-F0-9-]\{36\}')
+xcrun simctl boot "$SIMULATOR_ID" 2>/dev/null || true
+sleep 2
+open -a Simulator
+info "Simulator window opened"
+sleep 2
+echo ""
+
+# Prepare parallel flag
+PARALLEL_FLAG=""
+if [ "$SERIAL_MODE" = true ]; then
+    PARALLEL_FLAG="-parallel-testing-enabled NO"
+else
+    PARALLEL_FLAG="-parallel-testing-enabled YES"
+fi
+
+# Run tests with real-time output
+log "Running tests..."
+echo ""
+
+if [ "$VERBOSE_MODE" = true ]; then
+    # Verbose mode - show everything with tee
+    xcodebuild test-without-building \
+        -project OnTrack.xcodeproj \
+        -scheme OnTrack \
+        -destination "platform=iOS Simulator,name=$SIMULATOR_NAME,OS=latest" \
+        $PARALLEL_FLAG \
+        2>&1 | tee "$LOG_FILE"
+    TEST_EXIT_CODE=${PIPESTATUS[0]}
+else
+    # Normal mode - filtered output with unbuffered grep
+    xcodebuild test-without-building \
+        -project OnTrack.xcodeproj \
+        -scheme OnTrack \
+        -destination "platform=iOS Simulator,name=$SIMULATOR_NAME,OS=latest" \
+        $PARALLEL_FLAG \
+        2>&1 | tee "$LOG_FILE" | grep --line-buffered -E "(Test Suite.*started|Test Suite.*passed|Test Suite.*failed|Test Case.*started|Test Case.*passed|Test Case.*failed|Testing started|Executed.*tests|🧪|📋|📝|💰|🎨|💾|✅|↩️|⚠️|✏️|📜|🧹|💵|🔍|🗑️)"
+    TEST_EXIT_CODE=${PIPESTATUS[0]}
+fi
 
 echo ""
 echo "======================================"
-echo "📊 Test Execution Complete"
-echo "======================================"
 
-# Show test server log tail
-echo ""
-echo "📝 Recent test server logs:"
-tail -20 ../../log/test_server.log | grep -E "(Started|Processing|Completed|401|500)" | tail -10
-
+if [ $TEST_EXIT_CODE -eq 0 ]; then
+    success "ALL TESTS PASSED! 🎉"
+    echo ""
+    info "Log: $LOG_FILE"
+    exit 0
+else
+    error "SOME TESTS FAILED"
+    echo ""
+    error "Log: $LOG_FILE"
+    echo ""
+    log "Failed tests:"
+    grep -E "Test Case.*failed" "$LOG_FILE" | sed 's/^/  /' || true
+    exit 1
+fi
