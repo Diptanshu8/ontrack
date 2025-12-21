@@ -10,9 +10,9 @@ module Api; module V1
       # Support both cookie-based auth (for web app) and JWT token (for iOS app)
       
       # First, try cookie-based authentication (for web app)
-      if cookies.signed[:logged_in]
-        @current_user = User.first
-        return
+      if cookies.signed[:logged_in] && cookies.signed[:user_id]
+        @current_user = User.find_by(id: cookies.signed[:user_id])
+        return if @current_user
       end
 
       # If no cookie, try JWT token authentication (for iOS app)

@@ -2,7 +2,7 @@ require 'csv'
 
 class ExpenseUploadsController < ApplicationController
   def new
-    @categories = Category.all.order(:name)
+    @categories = current_user.categories.order(:name)
     @csv_configs = CsvConfig.all.order(:name)
 
     @auto_detect_data = @csv_configs.map do |c|
@@ -14,7 +14,7 @@ class ExpenseUploadsController < ApplicationController
       {
         filename_substring: filename_substring,
         csv_config_id: c.id,
-        default_category_id: @categories.find { |c| c.name == default_category }&.id
+        default_category_id: @categories.find { |cat| cat.name == default_category }&.id
       }
     end.compact
   end
@@ -36,12 +36,12 @@ class ExpenseUploadsController < ApplicationController
       description = expense_data[:description]
       category_id = expense_data[:category_id]
 
-      next if skip_existing && Expense.exists?(amount: amount, paid_at: paid_at, description: description)
+      next if skip_existing && current_user.expenses.exists?(amount: amount, paid_at: paid_at, description: description)
 
       rows << { amount: amount, paid_at: paid_at, description: description, category_id: category_id }
     end
 
-    @categories = Category.all.order(:name).to_json
+    @categories = current_user.categories.order(:name).to_json
     @rows = rows.to_json
   end
 end

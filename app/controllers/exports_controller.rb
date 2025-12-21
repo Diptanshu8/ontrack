@@ -9,7 +9,7 @@ class ExportsController < ApplicationController
 
     csv = CSV.generate(headers: true) do |csv|
       csv << headers
-      Expense.includes(:category).find_in_batches do |batch|
+      current_user.expenses.includes(:category).find_in_batches do |batch|
         batch.each do |expense|
           csv << [expense.paid_at, expense.amount, expense.category.name, expense.description, expense.category.color, expense.category.rank]
         end

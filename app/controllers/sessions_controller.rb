@@ -6,14 +6,25 @@ class SessionsController < ApplicationController
   end
 
   def create
-    user = User.first
+    username = params[:username]
+    password = params[:password]
 
+    # 1. Try lookup by login_id
+    user = User.find_by(login_id: username)
+
+    # 2. Legacy Fallback (Migration)
     unless user
-      flash[:error] = "No user found"
-      redirect_to :root and return
+      User.where(login_id: nil).find_each do |u|
+        if BCrypt::Password.new(u.username) == username
+          user = u
+          user.update(login_id: username)
+          break
+        end
+      end
     end
 
-    if BCrypt::Password.new(user.password) == params[:password] && BCrypt::Password.new(user.username) == params[:username]
+    if user && BCrypt::Password.new(user.password) == password
+      cookies.signed[:user_id] = user.id
       cookies.signed[:logged_in] = true
     else
       flash[:error] = "Incorrect login"
@@ -23,7 +34,8 @@ class SessionsController < ApplicationController
   end
 
   def logout
-    cookies.signed[:logged_in] = false
+    cookies.delete(:user_id)
+    cookies.delete(:logged_in)
     redirect_to :root
   end
 end
