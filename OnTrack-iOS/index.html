@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OnTrack iOS - Dashboard</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; max-width: 960px; margin: 0 auto; padding: 20px; color: #333; }
+        h1 { border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        h2 { margin-top: 30px; }
+        ul { list-style-type: none; padding: 0; }
+        li { margin-bottom: 10px; }
+        a { text-decoration: none; color: #0366d6; font-weight: 500; }
+        a:hover { text-decoration: underline; }
+        .card { border: 1px solid #ddd; border-radius: 6px; padding: 15px; margin-bottom: 15px; background: #f9f9f9; }
+        .coverage-preview { background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 6px; overflow-x: auto; font-family: monospace; white-space: pre; max-height: 400px; }
+        .refresh-btn { background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        .refresh-btn:hover { background: #218838; }
+    </style>
+</head>
+<body>
+    <h1>OnTrack iOS Dashboard</h1>
+
+    <div class="card">
+        <h2>📊 Latest Coverage Report</h2>
+        <p><a href="COVERAGE_SUMMARY.txt" target="_blank">View Raw File</a></p>
+        <div id="coverage-content" class="coverage-preview">Loading coverage data...</div>
+    </div>
+
+    <div class="card">
+        <h2>📝 Project TODOs</h2>
+        <p><a href="TODO.md" target="_blank">View TODO.md</a></p>
+        <div id="todo-content" class="coverage-preview" style="background: white; color: #333; border: 1px solid #ddd;">Loading TODOs...</div>
+    </div>
+
+    <h2>📚 Documentation</h2>
+    <div class="card">
+        <h3>Guides & Setup</h3>
+        <ul>
+            <li><a href="TESTING_GUIDE.md">🧪 Testing Guide</a></li>
+            <li><a href="AUTOMATED_TESTING_GUIDE.md">🤖 Automated Testing Guide</a></li>
+            <li><a href="OnTrack/TEST_PLAN.md">📋 Test Plan</a></li>
+            <li><a href="OnTrack/TEST_RESULTS_GUIDE.md">📈 Test Results Guide</a></li>
+            <li><a href="TESTING_COMMANDS.md">💻 Testing Commands</a></li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h3>Status & Logs</h3>
+        <ul>
+             <li><a href="TEST_STATUS.md">Test Status</a></li>
+             <li><a href="LATEST_CHANGES.md">Latest Changes</a></li>
+        </ul>
+    </div>
+
+    <script>
+        fetch('COVERAGE_SUMMARY.txt')
+            .then(response => response.text())
+            .then(text => {
+                document.getElementById('coverage-content').textContent = text;
+            })
+            .catch(err => {
+                document.getElementById('coverage-content').textContent = "Error loading coverage file: " + err;
+            });
+
+        fetch('TODO.md')
+            .then(response => response.text())
+            .then(text => {
+                document.getElementById('todo-content').textContent = text;
+            })
+            .catch(err => {
+                document.getElementById('todo-content').textContent = "Error loading TODO file: " + err;
+            });
+    </script>
+</body>
+</html>
