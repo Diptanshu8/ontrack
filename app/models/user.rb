@@ -1,4 +1,9 @@
 class User < ApplicationRecord
+  has_many :expenses
+  has_many :categories
+
+  validates_uniqueness_of :login_id, allow_nil: true
+
   def password=(value)
     super(BCrypt::Password.create(value))
   end

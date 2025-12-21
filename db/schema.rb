@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_08_29_043321) do
+ActiveRecord::Schema.define(version: 2025_12_21_143258) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -22,7 +22,9 @@ ActiveRecord::Schema.define(version: 2021_08_29_043321) do
     t.datetime "updated_at", precision: 6, null: false
     t.integer "monthly_goal", default: 0
     t.integer "rank", default: 0
+    t.bigint "user_id"
     t.index ["rank"], name: "index_categories_on_rank"
+    t.index ["user_id"], name: "index_categories_on_user_id"
   end
 
   create_table "csv_configs", force: :cascade do |t|
@@ -39,9 +41,11 @@ ActiveRecord::Schema.define(version: 2021_08_29_043321) do
     t.datetime "paid_at", null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.bigint "user_id"
     t.index ["amount"], name: "index_expenses_on_amount"
     t.index ["category_id"], name: "index_expenses_on_category_id"
     t.index ["paid_at"], name: "index_expenses_on_paid_at"
+    t.index ["user_id"], name: "index_expenses_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -50,6 +54,8 @@ ActiveRecord::Schema.define(version: 2021_08_29_043321) do
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.integer "monthly_goal", default: 0
+    t.string "login_id"
+    t.index ["login_id"], name: "index_users_on_login_id", unique: true
   end
 
 end

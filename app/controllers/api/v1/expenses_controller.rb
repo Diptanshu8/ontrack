@@ -1,7 +1,7 @@
 module Api; module V1
   class ExpensesController < BaseController
     def index
-      expenses = ::Expense.all
+      expenses = @current_user.expenses
       
       # Support both timestamp-based and date-based filtering
       expenses = expenses.where('paid_at >= ?', Time.at(params[:paid_after].to_i).to_datetime) if params[:paid_after].present?
@@ -34,7 +34,7 @@ module Api; module V1
     end
 
     def create
-      expense = ::Expense.new(description: params[:description], category_id: params[:category_id], amount: params[:amount], paid_at: params[:paid_at])
+      expense = @current_user.expenses.new(description: params[:description], category_id: params[:category_id], amount: params[:amount], paid_at: params[:paid_at])
       successful = expense.save
       render json: expense, status: successful ? 200 : 500
     end
@@ -42,19 +42,19 @@ module Api; module V1
     def bulk_create
       Expense.transaction do
         params[:expenses].each_with_index do |expense, idx|
-          Expense.create!(amount: expense['amount'], category_id: expense['category_id'], description: expense['description'], paid_at: expense['paid_at'])
+          @current_user.expenses.create!(amount: expense['amount'], category_id: expense['category_id'], description: expense['description'], paid_at: expense['paid_at'])
         end
       end
     end
 
     def destroy
-      expense = ::Expense.find(params[:id])
+      expense = @current_user.expenses.find(params[:id])
       successful = expense.destroy
       render json: nil, status: successful ? 200 : 500
     end
 
     def update
-      expense = ::Expense.find(params[:id])
+      expense = @current_user.expenses.find(params[:id])
       successful = expense.update(
         category_id: params.fetch(:category_id, expense.category_id),
         description: params.fetch(:description, expense.description),

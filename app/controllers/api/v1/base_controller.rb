@@ -22,7 +22,12 @@ module Api; module V1
 
       begin
         decoded = JWT.decode(token, Rails.application.secret_key_base, true, { algorithm: 'HS256' })
-        @current_user = User.first  # Since there's only one user
+        user_id = decoded[0]['user_id']
+        @current_user = User.find_by(id: user_id)
+
+        unless @current_user
+          render json: { error: 'User not found' }, status: 401 
+        end
       rescue JWT::ExpiredSignature
         render json: { error: 'Token expired' }, status: 401
       rescue JWT::DecodeError

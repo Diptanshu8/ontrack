@@ -1,6 +1,7 @@
 class Category < ApplicationRecord
   validates_presence_of :name, :color
 
+  belongs_to :user
   has_many :expenses
 
   default_scope { order(rank: :asc, id: :asc) }

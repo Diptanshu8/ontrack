@@ -6,6 +6,7 @@ module Api; module V1
         from expenses
         where paid_at >= '#{params[:year].to_i}-01-01'
         and paid_at < '#{params[:year].to_i + 1}-01-01'
+        and expenses.user_id = #{@current_user.id}
       }).first['amount']
 
       category_percentages = ActiveRecord::Base.connection.execute(%{
@@ -14,6 +15,7 @@ module Api; module V1
         join categories on expenses.category_id = categories.id
         where paid_at >= '#{params[:year].to_i}-01-01'
         and paid_at < '#{params[:year].to_i + 1}-01-01'
+        and expenses.user_id = #{@current_user.id}
         group by categories.id
         order by percentage;
       })
@@ -24,6 +26,7 @@ module Api; module V1
         join categories on expenses.category_id = categories.id
         where paid_at >= '#{params[:year].to_i}-01-01'
         and paid_at < '#{params[:year].to_i + 1}-01-01'
+        and expenses.user_id = #{@current_user.id}
         group by categories.id
         order by amount desc;
       })
@@ -34,6 +37,7 @@ module Api; module V1
         join categories on expenses.category_id = categories.id
         where paid_at >= '#{params[:year].to_i}-01-01'
         and paid_at < '#{params[:year].to_i + 1}-01-01'
+        and expenses.user_id = #{@current_user.id}
         group by month, categories.id
         order by categories.rank asc, categories.id asc
       })
@@ -44,7 +48,7 @@ module Api; module V1
         category_amounts_by_month: category_amounts_by_month,
         category_averages_for_year: average_by_category(params[:year].to_i),
         total: total,
-        categories: Category.all.select(:id, :name, :color).order(:name)
+        categories: @current_user.categories.select(:id, :name, :color).order(:name)
       }
     end
 
@@ -58,6 +62,7 @@ module Api; module V1
         join categories on expenses.category_id = categories.id
         where paid_at >= '#{start_date}'
         and paid_at < '#{end_date}'
+        and expenses.user_id = #{@current_user.id}
         group by categories.rank, categories.id
         order by categories.rank asc, categories.id asc
       })
@@ -67,8 +72,8 @@ module Api; module V1
       render json: {
         category_totals: category_totals,
         category_averages_for_year: average_by_category(start_date.year),
-        total: Expense.where("paid_at >= '#{start_date}' and paid_at < '#{end_date}'").sum(:amount),
-        monthly_goal: User.first.monthly_goal
+        total: @current_user.expenses.where("paid_at >= '#{start_date}' and paid_at < '#{end_date}'").sum(:amount),
+        monthly_goal: @current_user.monthly_goal
       }
     end
     
@@ -77,6 +82,7 @@ module Api; module V1
       years = ActiveRecord::Base.connection.execute(%{
         SELECT DISTINCT EXTRACT(YEAR FROM paid_at)::integer AS year
         FROM expenses
+        WHERE user_id = #{@current_user.id}
         ORDER BY year DESC
       }).map { |row| row['year'].to_i }
       
@@ -97,6 +103,7 @@ module Api; module V1
         join categories on expenses.category_id = categories.id
         where paid_at >= '#{start_date}'
         and paid_at < '#{end_date}'
+        and expenses.user_id = #{@current_user.id}
         group by categories.id
       })
 
