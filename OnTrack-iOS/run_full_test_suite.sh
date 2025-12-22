@@ -1,11 +1,13 @@
 #!/bin/bash
 
 # Full Test Suite Runner
-# Orchestrates: start_test_server.sh → run_tests.sh → cleanup_test_server.sh
+# Orchestrates: test_server.sh start → test.sh --suite → test_server.sh stop
 
 set -e
 
 SCRIPT_DIR="/Users/djamgade/personal/ontrack/ontrack/OnTrack-iOS"
+SERVER_CMD="$SCRIPT_DIR/test_server.sh"
+TEST_CMD="$SCRIPT_DIR/test.sh"
 
 # Colors
 RED='\033[0;31m'
@@ -34,6 +36,8 @@ info() {
 # Parse arguments
 SERIAL_MODE=false
 VERBOSE_MODE=false
+COVERAGE_MODE=false
+ISOLATED_MODE=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -45,13 +49,23 @@ while [[ $# -gt 0 ]]; do
             VERBOSE_MODE=true
             shift
             ;;
+        -c|--coverage)
+            COVERAGE_MODE=true
+            shift
+            ;;
+        -i|--isolated)
+            ISOLATED_MODE=true
+            shift
+            ;;
         -h|--help)
             echo ""
-            echo "Usage: $0 [--serial] [--verbose]"
+            echo "Usage: $0 [--serial] [--verbose] [--coverage] [--isolated]"
             echo ""
             echo "Options:"
             echo "  -s, --serial    Run tests serially (no parallel execution)"
             echo "  -v, --verbose   Show verbose output"
+            echo "  -c, --coverage  Generate coverage report (full suite only)"
+            echo "  -i, --isolated  Run full suite in isolated mode"
             echo "  -h, --help      Show this help message"
             echo ""
             exit 0
@@ -67,33 +81,43 @@ echo ""
 echo "======================================"
 echo "🚀 OnTrack Full Test Suite"
 echo "======================================"
+echo "Serial Mode:  $([ "$SERIAL_MODE" = true ] && echo "Yes" || echo "No")"
+echo "Verbose:      $([ "$VERBOSE_MODE" = true ] && echo "Yes" || echo "No")"
+echo "Coverage:     $([ "$COVERAGE_MODE" = true ] && echo "Yes" || echo "No")"
+echo "Isolated:     $([ "$ISOLATED_MODE" = true ] && echo "Yes" || echo "No")"
 echo ""
 
 # Step 1: Start test server
 log "STEP 1: Starting test server..."
-cd "$SCRIPT_DIR"
-bash start_test_server.sh
-if [ $? -ne 0 ]; then
-    error "Failed to start test server"
-    exit 1
-fi
+"$SERVER_CMD" start
 echo ""
 
 # Step 2: Run tests
 log "STEP 2: Running tests..."
-info "Mode: $([ "$SERIAL_MODE" = true ] && echo "Serial" || echo "Parallel")"
-info "Verbose: $([ "$VERBOSE_MODE" = true ] && echo "Yes" || echo "No")"
-bash run_tests.sh $([ "$SERIAL_MODE" = true ] && echo "--serial") $([ "$VERBOSE_MODE" = true ] && echo "--verbose")
+info "Invoking $TEST_CMD --suite"
+TEST_ARGS=(--suite)
+if [ "$SERIAL_MODE" = true ]; then
+    TEST_ARGS+=("--serial")
+fi
+if [ "$VERBOSE_MODE" = true ]; then
+    TEST_ARGS+=("--verbose")
+fi
+if [ "$COVERAGE_MODE" = true ]; then
+    TEST_ARGS+=("--coverage")
+fi
+if [ "$ISOLATED_MODE" = true ]; then
+    TEST_ARGS+=("--isolated")
+fi
+
+set +e
+"$TEST_CMD" "${TEST_ARGS[@]}"
 TEST_EXIT_CODE=$?
+set -e
 echo ""
 
 # Step 3: Cleanup
 log "STEP 3: Cleaning up..."
-if [ $TEST_EXIT_CODE -eq 0 ]; then
-    bash cleanup_test_server.sh --clean-logs
-else
-    bash cleanup_test_server.sh
-fi
+"$SERVER_CMD" stop
 echo ""
 
 echo "======================================"
