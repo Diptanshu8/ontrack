@@ -3,74 +3,204 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OnTrack iOS - Dashboard</title>
+    <title>OnTrack iOS - Coverage Report</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; max-width: 960px; margin: 0 auto; padding: 20px; color: #333; }
-        h1 { border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        h2 { margin-top: 30px; }
-        ul { list-style-type: none; padding: 0; }
-        li { margin-bottom: 10px; }
-        a { text-decoration: none; color: #0366d6; font-weight: 500; }
-        a:hover { text-decoration: underline; }
-        .card { border: 1px solid #ddd; border-radius: 6px; padding: 15px; margin-bottom: 15px; background: #f9f9f9; }
-        .coverage-preview { background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 6px; overflow-x: auto; font-family: monospace; white-space: pre; max-height: 400px; }
-        .refresh-btn { background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; }
-        .refresh-btn:hover { background: #218838; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; max-width: 1200px; margin: 0 auto; padding: 20px; color: #333; background: #f4f5f7; }
+        h1 { border-bottom: 2px solid #e1e4e8; padding-bottom: 10px; margin-bottom: 20px; }
+        h2 { margin-top: 30px; font-size: 1.5em; color: #24292e; }
+        
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e1e4e8; }
+        
+        .metric-big { font-size: 2.5em; font-weight: bold; margin: 10px 0; }
+        .metric-label { color: #586069; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .progress-bar { height: 10px; background: #e1e4e8; border-radius: 5px; overflow: hidden; margin-top: 10px; }
+        .progress-fill { height: 100%; transition: width 0.5s ease; }
+        
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e1e4e8; }
+        th { background: #f6f8fa; font-weight: 600; color: #24292e; cursor: pointer; }
+        tr:hover { background: #f6f8fa; }
+        
+        .coverage-good { color: #28a745; }
+        .coverage-warn { color: #dbab09; }
+        .coverage-poor { color: #d73a49; }
+        
+        .bg-good { background-color: #28a745; }
+        .bg-warn { background-color: #dbab09; }
+        .bg-poor { background-color: #d73a49; }
+        
+        .filter-bar { margin-bottom: 15px; display: flex; gap: 10px; }
+        input[type="text"] { padding: 8px; border: 1px solid #ccc; border-radius: 4px; flex-grow: 1; }
+        
+        .hidden { display: none; }
+        
+        .file-row { cursor: pointer; }
+        .file-details { background: #f8f9fa; padding: 0 !important; }
+        .code-view { font-family: monospace; white-space: pre; padding: 15px; max-height: 300px; overflow: auto; background: #2d2d2d; color: #f8f8f2; margin: 0; }
     </style>
 </head>
 <body>
-    <h1>OnTrack iOS Dashboard</h1>
+    <h1>OnTrack iOS Coverage Report</h1>
 
-    <div class="card">
-        <h2>📊 Latest Coverage Report</h2>
-        <p><a href="COVERAGE_SUMMARY.txt" target="_blank">View Raw File</a></p>
-        <div id="coverage-content" class="coverage-preview">Loading coverage data...</div>
+    <div class="dashboard-grid">
+        <div class="card">
+            <div class="metric-label">Overall Coverage</div>
+            <div id="overall-coverage" class="metric-big">Loading...</div>
+            <div class="progress-bar"><div id="overall-bar" class="progress-fill" style="width: 0%"></div></div>
+        </div>
+        <div class="card">
+            <div class="metric-label">Total Files</div>
+            <div id="total-files" class="metric-big">-</div>
+        </div>
+        <div class="card">
+            <div class="metric-label">Lines of Code</div>
+            <div id="total-lines" class="metric-big">-</div>
+        </div>
     </div>
 
     <div class="card">
-        <h2>📝 Project TODOs</h2>
-        <p><a href="TODO.md" target="_blank">View TODO.md</a></p>
-        <div id="todo-content" class="coverage-preview" style="background: white; color: #333; border: 1px solid #ddd;">Loading TODOs...</div>
-    </div>
-
-    <h2>📚 Documentation</h2>
-    <div class="card">
-        <h3>Guides & Setup</h3>
-        <ul>
-            <li><a href="TESTING_GUIDE.md">🧪 Testing Guide</a></li>
-            <li><a href="AUTOMATED_TESTING_GUIDE.md">🤖 Automated Testing Guide</a></li>
-            <li><a href="OnTrack/TEST_PLAN.md">📋 Test Plan</a></li>
-            <li><a href="OnTrack/TEST_RESULTS_GUIDE.md">📈 Test Results Guide</a></li>
-            <li><a href="TESTING_COMMANDS.md">💻 Testing Commands</a></li>
-        </ul>
-    </div>
-
-    <div class="card">
-        <h3>Status & Logs</h3>
-        <ul>
-             <li><a href="TEST_STATUS.md">Test Status</a></li>
-             <li><a href="LATEST_CHANGES.md">Latest Changes</a></li>
-        </ul>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h2>File Breakdown</h2>
+            <div class="filter-bar">
+                <input type="text" id="search-input" placeholder="Search files..." onkeyup="filterTable()">
+            </div>
+        </div>
+        
+        <table id="coverage-table">
+            <thead>
+                <tr>
+                    <th onclick="sortTable(0)">File Name</th>
+                    <th onclick="sortTable(1)">Target</th>
+                    <th onclick="sortTable(2)">Coverage</th>
+                    <th onclick="sortTable(3)">Covered / Executable</th>
+                </tr>
+            </thead>
+            <tbody id="table-body">
+                <tr><td colspan="4" style="text-align: center;">Loading coverage data...</td></tr>
+            </tbody>
+        </table>
     </div>
 
     <script>
-        fetch('COVERAGE_SUMMARY.txt')
-            .then(response => response.text())
-            .then(text => {
-                document.getElementById('coverage-content').textContent = text;
-            })
-            .catch(err => {
-                document.getElementById('coverage-content').textContent = "Error loading coverage file: " + err;
+        let coverageData = [];
+
+        function getColorClass(percentage) {
+            if (percentage >= 80) return 'coverage-good';
+            if (percentage >= 50) return 'coverage-warn';
+            return 'coverage-poor';
+        }
+        
+        function getBgClass(percentage) {
+            if (percentage >= 80) return 'bg-good';
+            if (percentage >= 50) return 'bg-warn';
+            return 'bg-poor';
+        }
+
+        async function loadCoverage() {
+            try {
+                const response = await fetch('coverage.json');
+                if (!response.ok) throw new Error("Failed to load coverage.json");
+                const json = await response.json();
+                processData(json);
+            } catch (err) {
+                console.error(err);
+                document.getElementById('table-body').innerHTML = `<tr><td colspan="4" style="text-align: center; color: red;">Error loading coverage data: ${err.message}. Ensure coverage.json exists.</td></tr>`;
+            }
+        }
+
+        function processData(json) {
+            const targets = json.targets || [];
+            let totalExec = 0;
+            let totalCov = 0;
+            let fileList = [];
+
+            targets.forEach(target => {
+                const targetName = target.name;
+                const files = target.files || [];
+                
+                files.forEach(file => {
+                    totalExec += file.executableLines;
+                    totalCov += file.coveredLines;
+                    
+                    fileList.push({
+                        name: file.name,
+                        path: file.path,
+                        target: targetName,
+                        covered: file.coveredLines,
+                        executable: file.executableLines,
+                        percentage: file.lineCoverage * 100
+                    });
+                });
             });
 
-        fetch('TODO.md')
-            .then(response => response.text())
-            .then(text => {
-                document.getElementById('todo-content').textContent = text;
-            })
-            .catch(err => {
-                document.getElementById('todo-content').textContent = "Error loading TODO file: " + err;
+            // Update Header Metrics
+            const overallPercent = totalExec > 0 ? (totalCov / totalExec) * 100 : 0;
+            const overallElem = document.getElementById('overall-coverage');
+            overallElem.textContent = overallPercent.toFixed(2) + '%';
+            overallElem.className = `metric-big ${getColorClass(overallPercent)}`;
+            
+            document.getElementById('overall-bar').style.width = `${overallPercent}%`;
+            document.getElementById('overall-bar').className = `progress-fill ${getBgClass(overallPercent)}`;
+            
+            document.getElementById('total-files').textContent = fileList.length;
+            document.getElementById('total-lines').textContent = totalExec.toLocaleString();
+
+            // Populate Table
+            coverageData = fileList.sort((a, b) => a.percentage - b.percentage); // Sort by coverage ascending initially
+            renderTable(coverageData);
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+
+            data.forEach(file => {
+                const row = document.createElement('tr');
+                row.className = 'file-row';
+                
+                const pct = file.percentage.toFixed(1);
+                const colorClass = getColorClass(file.percentage);
+                const bgClass = getBgClass(file.percentage);
+
+                row.innerHTML = `
+                    <td style="font-weight: 500;">${file.name}</td>
+                    <td style="color: #666;">${file.target}</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="flex-grow: 1; height: 6px; background: #eee; border-radius: 3px; overflow: hidden; width: 100px;">
+                                <div style="width: ${pct}%; height: 100%;" class="${bgClass}"></div>
+                            </div>
+                            <span class="${colorClass}" style="font-weight: bold; width: 45px; text-align: right;">${pct}%</span>
+                        </div>
+                    </td>
+                    <td style="color: #666;">${file.covered} / ${file.executable}</td>
+                `;
+                tbody.appendChild(row);
             });
+        }
+
+        function filterTable() {
+            const input = document.getElementById('search-input');
+            const filter = input.value.toLowerCase();
+            const filtered = coverageData.filter(item => item.name.toLowerCase().includes(filter));
+            renderTable(filtered);
+        }
+
+        function sortTable(n) {
+            // Simple sort implementation for columns
+            const keys = ['name', 'target', 'percentage', 'executable'];
+            const key = keys[n];
+            
+            coverageData.sort((a, b) => {
+                if (typeof a[key] === 'string') return a[key].localeCompare(b[key]);
+                return b[key] - a[key]; // Descending for numbers
+            });
+            renderTable(coverageData);
+        }
+
+        window.onload = loadCoverage;
     </script>
 </body>
 </html>
