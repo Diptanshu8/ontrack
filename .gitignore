@@ -30,6 +30,16 @@
 yarn-debug.log*
 .yarn-integrity
 
+# Database backups
+*.sql
+
+# Log files
+*.log
+
+# Test/Coverage artifacts
+coverage.json
+login_resp.json
+
 .DS_Store
 # Documentation files
 *.md
