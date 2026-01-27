@@ -194,3 +194,4 @@ If you encounter any issues:
 2. Verify Rails is running: `ps aux | grep rails`
 3. Test endpoints with curl before trying iOS app
 
+

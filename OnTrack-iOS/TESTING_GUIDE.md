@@ -197,3 +197,4 @@ curl http://192.168.1.110:3000/api/v1/categories
 
 **Ready to test! Build and run the app now!** 🎉
 
+
