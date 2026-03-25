@@ -3,7 +3,7 @@
 
 puts "🔄 Checking database for current month data..."
 
-current_date = Date.new(2025, 12, 21) # Fixed to user context
+current_date = Date.today
 current_month_range = current_date.beginning_of_month..current_date.end_of_month
 
 if Expense.where(paid_at: current_month_range).exists?
