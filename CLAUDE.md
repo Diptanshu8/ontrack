@@ -53,7 +53,9 @@ bundle exec rails c
 ```
 
 ### Testing
-There is currently no test suite. Manual testing is required.
+The Rails web app has no automated test suite — manual testing is required.
+
+The iOS app has a full UI test suite. See the iOS App section below for details.
 
 ### Code Quality
 ```bash
@@ -276,7 +278,15 @@ The CSV import feature allows flexible parsing of bank statement exports:
 
 The iOS app is a git submodule at `OnTrack-iOS/OnTrack/`. It is a SwiftUI app that talks to the Rails API.
 
-### Running iOS UI Tests
+### Skills (use these instead of manual commands)
+
+| Skill | What it does |
+|-------|-------------|
+| `/preview-simulator` | Build + install + launch on simulator with server URL configured |
+| `/run-tests` | Start test server + run full UI test suite in serial mode |
+| `/deploy-ios` | Build + deploy to a physical iPhone |
+
+### Running iOS UI Tests Manually
 ```bash
 # Start test server (clones prod DB from djpi via SSH if local DB missing)
 bash OnTrack-iOS/test_server.sh start
@@ -288,44 +298,32 @@ bash OnTrack-iOS/test.sh --serial
 bash OnTrack-iOS/test.sh --serial CategoryTest
 ```
 
-### Taking Simulator Screenshots (with server connected)
+### Simulator Screenshots
 
-UI tests run on whichever iPhone 17 Xcode picks — not necessarily the one you want for screenshots. After tests run, `serverBaseURL` is reset by the test harness. To get a connected simulator for screenshots:
+After code changes, use `/preview-simulator` — it builds, installs, configures the server URL, and launches in one step.
 
+**Why tests connect but plain launch doesn't:** `BaseUITest.swift` passes `-UITests` launch arg + `UI_TEST_HOST=localhost` / `UI_TEST_PORT=3001` env vars. `NetworkConfiguration.swift` reads these and overrides `serverBaseURL`. A plain launch falls back to UserDefaults — which gets cleared by `-ResetUserDefaults` after each test run. The `/preview-simulator` skill re-applies the server URL after every run.
+
+**Taking screenshots after launching:**
 ```bash
-DEVICE_ID="796CDA6C-507F-43D9-AA00-685D03FC3FF5"  # iPhone 17
-
-# 1. Build and install latest app on the chosen simulator
-xcodebuild build \
-  -project OnTrack-iOS/OnTrack/OnTrack.xcodeproj \
-  -scheme OnTrack \
-  -configuration Debug \
-  -destination "platform=iOS Simulator,id=$DEVICE_ID" \
-  -derivedDataPath /tmp/OnTrackBuild
-xcrun simctl install $DEVICE_ID /tmp/OnTrackBuild/Build/Products/Debug-iphonesimulator/OnTrack.app
-
-# 2. Set server URL (tests clear UserDefaults, so this must be re-applied)
-PLIST="$(xcrun simctl get_app_container $DEVICE_ID com.djamgade.personal.OnTrack data)/Library/Preferences/com.djamgade.personal.OnTrack.plist"
-/usr/libexec/PlistBuddy -c "Set :serverBaseURL http://localhost:3001/api/v1" "$PLIST" 2>/dev/null || \
-/usr/libexec/PlistBuddy -c "Add :serverBaseURL string http://localhost:3001/api/v1" "$PLIST"
-
-# 3. Launch app and screenshot
-xcrun simctl launch $DEVICE_ID com.djamgade.personal.OnTrack
-sleep 5
-xcrun simctl io $DEVICE_ID screenshot /tmp/screenshot.png
+xcrun simctl io booted screenshot /tmp/screenshot.png
+# Always clean up: rm /tmp/screenshot.png
 ```
-
-Why tests connect but plain launch doesn't: `BaseUITest.swift` passes `-UITests` launch arg + `UI_TEST_HOST=localhost` / `UI_TEST_PORT=3001` env vars. `NetworkConfiguration.swift` reads these and overrides `serverBaseURL`. A plain `simctl launch` has no such args so it falls back to UserDefaults — which gets cleared by `-ResetUserDefaults` after each test run.
 
 ### Deploy to Physical iPhone
 ```bash
+# Interactive — lists connected devices and prompts for selection
+/deploy-ios
+# Or directly:
 bash .claude/skills/deploy-ios/deploy.sh "$DEVICE_ID"
 ```
 
 ### Key iOS Files
 - **Main view**: `OnTrack-iOS/OnTrack/OnTrack/Views/Dashboard/FinalDashboardView.swift`
+- **Login view**: `OnTrack-iOS/OnTrack/OnTrack/Views/Auth/LoginView.swift`
 - **API service**: `OnTrack-iOS/OnTrack/OnTrack/Services/APIService.swift`
 - **Network config**: `OnTrack-iOS/OnTrack/OnTrack/Utilities/NetworkConfiguration.swift`
+- **Assets**: `OnTrack-iOS/OnTrack/OnTrack/Assets.xcassets/` (AppIcon, Logo imagesets)
 - **Test base**: `OnTrack-iOS/OnTrack/OnTrackUITests/BaseUITest.swift`
 - **Category tests**: `OnTrack-iOS/OnTrack/OnTrackUITests/Flows/CategoryTest.swift`
 - **DB helper**: `OnTrack-iOS/OnTrack/OnTrackUITests/Helpers/DatabaseHelper.swift`
