@@ -159,6 +159,8 @@ start_server() {
 
     local seed_dump="${TEST_DB_SEED_DUMP:-}"
     local source_db="${TEST_DB_SOURCE_DB:-ontrack_development}"
+    local remote_host="${TEST_DB_REMOTE_HOST:-djpi}"
+    local remote_db="${TEST_DB_REMOTE_DB:-ontrack_development}"
 
     if [ -n "$seed_dump" ] && [ -f "$seed_dump" ]; then
         warn "Using seed dump to recreate test DB: $seed_dump"
@@ -166,12 +168,19 @@ start_server() {
         createdb ontrack_test
         psql ontrack_test < "$seed_dump" > /dev/null 2>&1
         success "Restored 'ontrack_test' from seed dump"
-    else
-        info "Cloning ${source_db} → ontrack_test"
+    elif psql -lqt | cut -d\| -f1 | grep -qw "$source_db"; then
+        info "Cloning local ${source_db} → ontrack_test"
         dropdb --if-exists ontrack_test || true
         createdb ontrack_test
         pg_dump --no-owner --no-privileges "$source_db" | psql ontrack_test > /dev/null 2>&1
-        success "Recreated test database from '$source_db'"
+        success "Recreated test database from local '$source_db'"
+    else
+        warn "Local DB '$source_db' not found — cloning from ${remote_host}:${remote_db}..."
+        dropdb --if-exists ontrack_test || true
+        createdb ontrack_test
+        ssh "$remote_host" "sudo -u postgres pg_dump --no-owner --no-privileges -Fp ${remote_db}" \
+            | psql ontrack_test > /dev/null 2>&1
+        success "Cloned production DB from ${remote_host}:${remote_db} → ontrack_test"
     fi
 
     log "Starting test server on port 3001..."
