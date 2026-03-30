@@ -183,6 +183,10 @@ start_server() {
         success "Cloned production DB from ${remote_host}:${remote_db} → ontrack_test"
     fi
 
+    log "Running pending migrations on ontrack_test..."
+    DISABLE_SPRING=1 RAILS_ENV=test bundle exec rake db:migrate > /dev/null 2>&1 && \
+        success "Migrations applied" || warn "Migration step had issues (may be fine if up-to-date)"
+
     log "Starting test server on port 3001..."
     bundle exec rails server -p 3001 -b 0.0.0.0 > "$SERVER_LOG" 2>&1 &
     local server_pid=$!
