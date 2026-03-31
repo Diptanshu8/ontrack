@@ -78,5 +78,11 @@ xcrun simctl launch "$DEVICE_ID" "$BUNDLE_ID"
 echo ""
 echo "✅ App launched on $DEVICE_NAME!"
 echo ""
-echo "ℹ️  Test server must be running on :3001"
-echo "   Start with: bash OnTrack-iOS/test_server.sh start"
+
+echo "▶ Checking test server on :3001..."
+if curl -s http://localhost:3001/api/v1/auth/validate >/dev/null 2>&1; then
+    echo "✅ Test server already running on :3001"
+else
+    bash "$PROJECT_ROOT/OnTrack-iOS/test_server.sh" start
+    echo "✅ Test server running on :3001"
+fi

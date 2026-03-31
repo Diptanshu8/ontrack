@@ -16,6 +16,12 @@ Always use `List > ForEach` when swipe-to-edit or swipe-to-delete is needed.
 ### Accessibility Identifiers for Tests
 UI tests find elements by accessibility identifier, not by type. SwiftUI `List` rows land as `app.otherElements["id"]`, not `app.cells["id"]`. Always use `app.otherElements[...]` when querying List row items in XCUITests.
 
+**NavigationLink rows** have their identifier on the link itself (which is a button), so use `app.buttons["id"]` — not `app.otherElements`.
+
+**Rows with `.swipeActions`**: put `.accessibilityElement(children: .contain)` and `.accessibilityIdentifier` AFTER the `.swipeActions` modifier in the ForEach item chain — the swipe modifier otherwise shadows inner accessibility elements.
+
+**SwiftUI Toggle in Form**: Cannot be reliably automated via XCUITest in **either direction** (ON or OFF). `app.switches.firstMatch` finds the UISwitch element but `tap()` does not change its state. Identifier-based queries (`app.switches["id"]`, `app.tables.switches`) fail to locate it inside a sheet. Tapping the label static text also does not toggle the value. **Workaround**: use `DatabaseHelper` to set state via the API, then verify the UI reflects it (same pattern as `testCreateGoalWithDeadline` and `testRemoveDeadlineFromGoal`).
+
 ### Server URL
 The full URL including path is required: `http://localhost:3001/api/v1`
 Not just `http://localhost:3001` — the `/api/v1` suffix is mandatory.

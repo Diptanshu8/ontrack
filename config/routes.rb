@@ -34,6 +34,9 @@ Rails.application.routes.draw do
       resources :goals, only: [:index] do
         put :update, on: :collection
       end
+      resources :savings_goals do
+        resources :savings_contributions, only: [:index, :create, :destroy]
+      end
     end
   end
 

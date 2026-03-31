@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2025_12_21_143258) do
+ActiveRecord::Schema.define(version: 2026_03_30_100729) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -46,6 +46,31 @@ ActiveRecord::Schema.define(version: 2025_12_21_143258) do
     t.index ["category_id"], name: "index_expenses_on_category_id"
     t.index ["paid_at"], name: "index_expenses_on_paid_at"
     t.index ["user_id"], name: "index_expenses_on_user_id"
+  end
+
+  create_table "savings_contributions", force: :cascade do |t|
+    t.bigint "savings_goal_id", null: false
+    t.bigint "user_id", null: false
+    t.integer "amount", null: false
+    t.text "note"
+    t.date "contributed_on", null: false
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.bigint "expense_id"
+    t.index ["contributed_on"], name: "index_savings_contributions_on_contributed_on"
+    t.index ["savings_goal_id"], name: "index_savings_contributions_on_savings_goal_id"
+    t.index ["user_id"], name: "index_savings_contributions_on_user_id"
+  end
+
+  create_table "savings_goals", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.text "name", null: false
+    t.integer "target_amount", null: false
+    t.string "color", default: "#2a9d8f", null: false
+    t.date "deadline"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["user_id"], name: "index_savings_goals_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
