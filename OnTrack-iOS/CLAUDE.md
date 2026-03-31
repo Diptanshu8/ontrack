@@ -20,7 +20,7 @@ UI tests find elements by accessibility identifier, not by type. SwiftUI `List` 
 
 **Rows with `.swipeActions`**: put `.accessibilityElement(children: .contain)` and `.accessibilityIdentifier` AFTER the `.swipeActions` modifier in the ForEach item chain — the swipe modifier otherwise shadows inner accessibility elements.
 
-**SwiftUI Toggle in Form**: `.accessibilityIdentifier` on a Toggle lands on the Form cell container, not the UISwitch. Tapping `app.switches["id"]` does NOT toggle the value. Instead, tap the toggle's label text: `app.staticTexts["Toggle label text"].firstMatch.tap()`. Confirm by checking that the content controlled by the toggle (e.g. a DatePicker) appeared.
+**SwiftUI Toggle in Form**: Cannot be reliably automated via XCUITest in **either direction** (ON or OFF). `app.switches.firstMatch` finds the UISwitch element but `tap()` does not change its state. Identifier-based queries (`app.switches["id"]`, `app.tables.switches`) fail to locate it inside a sheet. Tapping the label static text also does not toggle the value. **Workaround**: use `DatabaseHelper` to set state via the API, then verify the UI reflects it (same pattern as `testCreateGoalWithDeadline` and `testRemoveDeadlineFromGoal`).
 
 ### Server URL
 The full URL including path is required: `http://localhost:3001/api/v1`
