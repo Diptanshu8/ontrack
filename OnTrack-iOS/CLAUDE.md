@@ -16,6 +16,12 @@ Always use `List > ForEach` when swipe-to-edit or swipe-to-delete is needed.
 ### Accessibility Identifiers for Tests
 UI tests find elements by accessibility identifier, not by type. SwiftUI `List` rows land as `app.otherElements["id"]`, not `app.cells["id"]`. Always use `app.otherElements[...]` when querying List row items in XCUITests.
 
+**NavigationLink rows** have their identifier on the link itself (which is a button), so use `app.buttons["id"]` — not `app.otherElements`.
+
+**Rows with `.swipeActions`**: put `.accessibilityElement(children: .contain)` and `.accessibilityIdentifier` AFTER the `.swipeActions` modifier in the ForEach item chain — the swipe modifier otherwise shadows inner accessibility elements.
+
+**SwiftUI Toggle in Form**: `.accessibilityIdentifier` on a Toggle lands on the Form cell container, not the UISwitch. Tapping `app.switches["id"]` does NOT toggle the value. Instead, tap the toggle's label text: `app.staticTexts["Toggle label text"].firstMatch.tap()`. Confirm by checking that the content controlled by the toggle (e.g. a DatePicker) appeared.
+
 ### Server URL
 The full URL including path is required: `http://localhost:3001/api/v1`
 Not just `http://localhost:3001` — the `/api/v1` suffix is mandatory.
