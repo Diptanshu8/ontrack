@@ -44,3 +44,4 @@ login_resp.json
 # Documentation files
 *.md
 !README.md
+screenshots/
