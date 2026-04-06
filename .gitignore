@@ -45,3 +45,4 @@ login_resp.json
 *.md
 !README.md
 screenshots/
+.temp/

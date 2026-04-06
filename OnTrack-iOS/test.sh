@@ -406,12 +406,20 @@ run_suite() {
     local log_file="$2"
     local filtered_pattern="(Test Suite.*(started|passed|failed)|Test Case.*(started|passed|failed)|Testing started|Executed.*tests|🧪|📋|📝|💰|🎨|💾|✅|↩️|⚠️|✏️|📜|🧹|💵|🔍|🗑️)"
     local extra_args=()
+    local skip_args=()
 
     if [ "$COVERAGE_MODE" = true ]; then
         extra_args+=(-enableCodeCoverage YES -resultBundlePath "$xcresult_bundle")
     fi
 
-    run_xcodebuild "test-without-building" "$filtered_pattern" "$log_file" ${ONLY_TESTING_ARGS[@]+"${ONLY_TESTING_ARGS[@]}"} ${extra_args[@]+"${extra_args[@]}"}
+    # Exclude screenshot/demo tests from routine full-suite runs.
+    # They can still be run explicitly: bash test.sh --serial ScreenshotTest
+    if [ "${#ONLY_TESTING_ARGS[@]}" -eq 0 ]; then
+        skip_args+=(-skip-testing:OnTrackUITests/ScreenshotTest)
+        skip_args+=(-skip-testing:OnTrackUITests/VideoDemoTest)
+    fi
+
+    run_xcodebuild "test-without-building" "$filtered_pattern" "$log_file" ${skip_args[@]+"${skip_args[@]}"} ${ONLY_TESTING_ARGS[@]+"${ONLY_TESTING_ARGS[@]}"} ${extra_args[@]+"${extra_args[@]}"}
 }
 
 run_isolated_tests() {

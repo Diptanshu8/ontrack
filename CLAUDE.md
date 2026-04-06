@@ -285,6 +285,7 @@ The iOS app is a git submodule at `OnTrack-iOS/OnTrack/`. It is a SwiftUI app th
 | `/preview-simulator` | Build + install + launch on simulator with server URL configured |
 | `/run-tests` | Start test server + run full UI test suite in serial mode |
 | `/deploy-ios` | Build + deploy to a physical iPhone |
+| `/deploy-pi` | Push main to GitHub + deploy to Raspberry Pi production (migrate, bundle, restart) |
 
 ### Running iOS UI Tests Manually
 ```bash
@@ -327,6 +328,18 @@ bash .claude/skills/deploy-ios/deploy.sh "$DEVICE_ID"
 - **Test base**: `OnTrack-iOS/OnTrack/OnTrackUITests/BaseUITest.swift`
 - **Category tests**: `OnTrack-iOS/OnTrack/OnTrackUITests/Flows/CategoryTest.swift`
 - **DB helper**: `OnTrack-iOS/OnTrack/OnTrackUITests/Helpers/DatabaseHelper.swift`
+
+## Raspberry Pi Production Server
+
+The production Rails app runs on `pi@djpi` (192.168.1.99) at `/home/pi/workplace/ontrack_new/ontrack`, port 3000. Use `/deploy-pi` to deploy.
+
+Manual equivalent:
+```bash
+git push upstream_ssh main
+ssh pi@djpi "cd /home/pi/workplace/ontrack_new/ontrack && eval \"\$(rbenv init -)\" && git pull upstream_ssh main && bundle install --without development test && yarn install --frozen-lockfile && RAILS_ENV=production bundle exec rake db:migrate && touch tmp/restart.txt"
+```
+
+**NEVER run** `db:drop`, `db:reset`, or `db:create` on the Pi — it holds live production data.
 
 ---
 
