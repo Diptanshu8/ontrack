@@ -201,6 +201,16 @@ boot_simulator() {
     xcrun simctl boot "$sim_id" 2>/dev/null || true
     sleep 2
     open -a Simulator >/dev/null 2>&1 || true
+
+    # Pre-grant pasteboard permission to suppress "Allow Paste" dialog during tests.
+    # The dialog is a system-level prompt that can't be reliably automated via XCUITest.
+    local tcc_db="$HOME/Library/Developer/CoreSimulator/Devices/$sim_id/data/Library/TCC/TCC.db"
+    if [ -f "$tcc_db" ]; then
+        sqlite3 "$tcc_db" "INSERT OR REPLACE INTO access (service, client, client_type, auth_value, auth_reason, auth_version, indirect_object_identifier_type, indirect_object_identifier, flags, last_modified, last_reminded) VALUES ('kTCCServicePasteboard', 'com.djamgade.personal.OnTrack', 0, 2, 4, 1, 0, 'UNUSED', 0, CAST(strftime('%s','now') AS INTEGER), CAST(strftime('%s','now') AS INTEGER));" 2>/dev/null
+        sqlite3 "$tcc_db" "INSERT OR REPLACE INTO access (service, client, client_type, auth_value, auth_reason, auth_version, indirect_object_identifier_type, indirect_object_identifier, flags, last_modified, last_reminded) VALUES ('kTCCServicePasteboard', 'com.djamgade.personal.OnTrack', 0, 2, 4, 1, 0, 'com.djamgade.personal.OnTrack.OnTrackUITests.xctrunner', 0, CAST(strftime('%s','now') AS INTEGER), CAST(strftime('%s','now') AS INTEGER));" 2>/dev/null
+        info "Pasteboard permission granted for OnTrack"
+    fi
+
     success "Simulator ready"
 }
 
