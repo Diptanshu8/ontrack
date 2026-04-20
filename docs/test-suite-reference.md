@@ -4,8 +4,8 @@
 > Update this document whenever tests are added, modified, or removed.
 
 **Total test files:** 15 (13 routine + 2 excluded from routine runs)
-**Total test methods:** 84 (3 duplicates removed 2026-04-13)
-**Last full run:** 2026-04-15 — 82 executed, 0 failures, 1 skip (InsightsTest chevrons conditional)
+**Total test methods:** 87 (3 duplicates removed 2026-04-13; +3 regression tests added 2026-04-20 — orphan sync, JWT expiry ×2)
+**Last full run:** 2026-04-20 — 85 executed, 0 failures, 1 skip (InsightsTest chevrons conditional; ScreenshotTest + VideoDemoTest excluded from routine runs)
 
 **Session-sharing optimization (2026-04-13):**
 - DashboardFeaturesTest, InsightsTest, HistoryFiltersTest: session-shared (1 login per class)

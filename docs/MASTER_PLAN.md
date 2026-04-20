@@ -256,11 +256,7 @@ Implemented: OfflineQueueService, PendingChangesView, auto-sync on foreground, 6
 **Risk:** Low — network-first `fetchWithCache` means fresh data every time. Cache invalidation on mutations means correct state between tests.
 **Verification:** Convert one at a time, run its full class to verify, then commit.
 
-### 9.5 Test Suite Reference Doc Drift
-**Why:** `docs/test-suite-reference.md` says 84 tests; actual count is 83 + new `testOrphanedSyncingStateRecovers` = 84 again. Easy to drift.
-**Approach:** Update `@test-watcher` to also update the reference doc when test files change. Or add a hook that diffs test count vs doc on every Swift edit.
-
-### 9.6 Additional Offline Queue Tests
+### 9.5 Additional Offline Queue Tests
 **Why:** Our `testOrphanedSyncingStateRecovers` covers the simple case (all items stuck in `.syncing`). Real-world race conditions aren't tested:
 - Partial sync success: one op succeeds, then crash, remaining stuck in `.syncing`
 - New offline writes arriving while sync is running
@@ -276,26 +272,25 @@ Implemented: OfflineQueueService, PendingChangesView, auto-sync on foreground, 6
 | 2 | Sleep replacement (2.2) | Testing | Small | 30-60s faster runs |
 | 3 | Password Manager fix (1.1) | Bug | Small | Eliminates test flakiness |
 | 4 | test.sh coverage revert (1.2) | Bug | Tiny | Correctness |
-| 5 | Test suite doc drift fix (9.5) | Process | Tiny | Keeps docs accurate |
-| 6 | Settings tab (5.1) | Feature | Medium | User needs this |
-| 7 | Session-share 3 test classes (9.4) | Testing | Small | 25 login cycles saved |
-| 8 | Additional offline queue tests (9.6) | Testing | Small | Covers race conditions |
-| 9 | CSV export (5.5) | Feature | Small | Data portability |
-| 10 | Split FinalDashboardView (3.1) | Refactor | Medium | Maintainability |
-| 11 | Spending trends chart (5.4) | Feature | Medium | User insight |
-| 12 | Cache staleness / TTL (1.4) | Bug | Medium | Multi-device consistency |
-| 13 | History pagination (5.6) | Feature | Medium | Scales for large datasets |
-| 14 | Recurring expenses (5.2) | Feature | Large | Saves manual work |
-| 15 | Offline edits phase 3.2 (4.2) | Feature | Large | Full offline support |
-| 16 | Retry logic phase 4 (4.3) | Feature | Medium | Reliability |
-| 17 | Budget alerts (5.3) | Feature | Medium | Proactive tracking |
-| 18 | Extract loadData pattern (3.2) | Refactor | Medium | Code quality |
-| 19 | Rails test suite (2.3) | Testing | Large | Backend safety |
-| 20 | CI pipeline (9.1) | Process | Medium | Catches regressions in main |
-| 21 | Version/release discipline (9.2) | Process | Small | Change tracking |
-| 22 | Production monitoring (9.3) | Process | Medium | Proactive Pi alerts |
-| 23 | Dark mode QA (5.7) | Polish | Small | Visual correctness |
-| 24 | Localization (5.8) | Polish | Large | Only needed if sharing app |
+| 5 | Settings tab (5.1) | Feature | Medium | User needs this |
+| 6 | Session-share 3 test classes (9.4) | Testing | Small | 25 login cycles saved |
+| 7 | Additional offline queue tests (9.5) | Testing | Small | Covers race conditions |
+| 8 | CSV export (5.5) | Feature | Small | Data portability |
+| 9 | Split FinalDashboardView (3.1) | Refactor | Medium | Maintainability |
+| 10 | Spending trends chart (5.4) | Feature | Medium | User insight |
+| 11 | Cache staleness / TTL (1.4) | Bug | Medium | Multi-device consistency |
+| 12 | History pagination (5.6) | Feature | Medium | Scales for large datasets |
+| 13 | Recurring expenses (5.2) | Feature | Large | Saves manual work |
+| 14 | Offline edits phase 3.2 (4.2) | Feature | Large | Full offline support |
+| 15 | Retry logic phase 4 (4.3) | Feature | Medium | Reliability |
+| 16 | Budget alerts (5.3) | Feature | Medium | Proactive tracking |
+| 17 | Extract loadData pattern (3.2) | Refactor | Medium | Code quality |
+| 18 | Rails test suite (2.3) | Testing | Large | Backend safety |
+| 19 | CI pipeline (9.1) | Process | Medium | Catches regressions in main |
+| 20 | Version/release discipline (9.2) | Process | Small | Change tracking |
+| 21 | Production monitoring (9.3) | Process | Medium | Proactive Pi alerts |
+| 22 | Dark mode QA (5.7) | Polish | Small | Visual correctness |
+| 23 | Localization (5.8) | Polish | Large | Only needed if sharing app |
 
 ---
 
