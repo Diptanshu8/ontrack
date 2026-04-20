@@ -1,7 +1,7 @@
 # OnTrack Master Plan
 
 Single source of truth for all open work — bugs, optimizations, features, and tech debt.
-Updated: 2026-04-17
+Updated: 2026-04-20
 
 ---
 
@@ -29,6 +29,24 @@ Updated: 2026-04-17
 4. Phase 2 skipped when import/add-expense overlay is open
 5. `fetchWithCache()` in APIService stays network-first — cache reads happen in views
 6. All mutations call `CacheService.shared.invalidate(forKey:)` for affected cache keys
+
+### 1.4 Handle Expired JWT (CRITICAL)
+**Status:** Not handled
+**Issue:** JWT expires after 90 days. When it does, users get silent failures on every API call (401 responses).
+**Fix:** In `APIService.makeRequest()`, detect HTTP 401 and:
+1. Clear the token via `KeychainManager.shared.deleteToken()`
+2. Trigger `AuthManager.shared.logout()` — kicks user back to login screen
+3. Show "Session expired — please log in again" message
+
+### 1.5 Expense Delete Confirmation
+**Status:** Missing
+**Issue:** Swipe-to-delete on expenses is instant — fat-finger risk, no way to undo. Categories have a confirmation alert ("Delete Category?"), expenses don't.
+**Fix:** Add confirmation alert on `HistoryView`/`OptimizedHistoryView` swipe-delete, matching the category pattern.
+
+### 1.6 Cache Staleness (No TTL)
+**Status:** Known limitation
+**Issue:** `CacheService.load()` never expires cached data. If an expense is deleted on the Pi web UI, the iPhone keeps showing it indefinitely until the user triggers a mutation that invalidates the cache.
+**Possible fix:** Add a soft TTL (e.g., 24 hours) — cache entries older than TTL are still served instantly but trigger a background refresh even without user action. Or: invalidate all caches on app launch.
 
 ---
 
@@ -205,6 +223,66 @@ Implemented: OfflineQueueService, PendingChangesView, auto-sync on foreground, 6
 - New: `Services/CSVExportService.swift`
 - Modify: `SettingsView.swift` — "Export Expenses" button with date range picker
 
+### 5.6 "Jump to Today" on Dashboard
+**Why:** Month picker has "Jump to Today" but dashboard chevrons don't offer a shortcut back to current month. Users have to tap right chevron N times.
+**Fix:** Add a small "Today" button next to the month title (only shown when not on current month).
+
+### 5.7 History Pagination
+**Why:** `/expenses` API supports `page`/`per_page` but iOS fetches all expenses. Fine for a single user, scales poorly over years.
+**Approach:** Infinite scroll in `OptimizedHistoryView` using `fetchExpenses(params: ["page": ...])`. Replaces the current fetch-all pattern.
+
+### 5.8 Dark Mode QA
+**Why:** App uses `Color(.systemBackground)` which adapts, but no visual QA pass. Custom category colors (hex strings) may have poor contrast in dark mode.
+**Approach:**
+- Add screenshot variant in dark mode
+- Review custom category color rendering against dark backgrounds
+- Consider luminance check when user picks a category color
+
+### 5.9 Localization
+**Why:** All UI strings hard-coded in English. Currency display uses ₹ (hardcoded for INR). Not a priority for single-user, but a blocker for sharing.
+**Scope:** Extract strings to Localizable.strings. Out of scope for now unless sharing the app.
+
+---
+
+## 9. DevOps & Process
+
+### 9.1 CI Pipeline
+**Why:** Tests only run locally via `/run-tests`. No way to catch failures on push. Regressions can slip into main.
+**Approach:**
+- GitHub Actions workflow on macOS runner (or self-hosted on your Mac to control cost)
+- Triggers on push/PR to main
+- Runs: `bash OnTrack-iOS/test.sh --serial` + Rails backend tests (once those exist)
+
+### 9.2 Version & Release Discipline
+**Why:** `Info.plist` has a version number, but no git tags, no changelog, no way to track what changed between deploys.
+**Approach:**
+- Bump version in `Info.plist` before each deploy
+- Tag the commit: `git tag ios-v1.2.3`
+- Maintain `CHANGELOG.md` with user-facing changes
+
+### 9.3 Production Monitoring
+**Why:** If the Pi crashes, you discover it when you open the app. No proactive alert.
+**Approach:**
+- Heartbeat endpoint on Pi (already exists via deploy-pi health check)
+- Cron on another machine pings it every 5 minutes
+- Alert via email/Slack on failure
+- Could also log client-side errors to a file on the Pi
+
+### 9.4 Session-Sharing for CategoryTest, ExpenseTest, SavingsGoalTest
+**Why:** Earlier this session, these 3 test classes were kept per-test-login because session sharing broke them. Since then, `fetchWithCache` is stable and cache invalidation on mutations is in place. Session-sharing these could save ~25 login cycles.
+**Risk:** Low — network-first `fetchWithCache` means fresh data every time. Cache invalidation on mutations means correct state between tests.
+**Verification:** Convert one at a time, run its full class to verify, then commit.
+
+### 9.5 Test Suite Reference Doc Drift
+**Why:** `docs/test-suite-reference.md` says 84 tests; actual count is 83 + new `testOrphanedSyncingStateRecovers` = 84 again. Easy to drift.
+**Approach:** Update `@test-watcher` to also update the reference doc when test files change. Or add a hook that diffs test count vs doc on every Swift edit.
+
+### 9.6 Additional Offline Queue Tests
+**Why:** Our `testOrphanedSyncingStateRecovers` covers the simple case (all items stuck in `.syncing`). Real-world race conditions aren't tested:
+- Partial sync success: one op succeeds, then crash, remaining stuck in `.syncing`
+- New offline writes arriving while sync is running
+- Sync called twice concurrently (we have `isSyncing` flag but no test)
+
 ---
 
 ## 6. Priority Order
@@ -215,16 +293,29 @@ Implemented: OfflineQueueService, PendingChangesView, auto-sync on foreground, 6
 | 2 | Sleep replacement (2.2) | Testing | Small | 30-60s faster runs |
 | 3 | Password Manager fix (1.1) | Bug | Small | Eliminates test flakiness |
 | 4 | test.sh coverage revert (1.2) | Bug | Tiny | Correctness |
-| 5 | Settings tab (5.1) | Feature | Medium | User needs this |
-| 6 | Split FinalDashboardView (3.1) | Refactor | Medium | Maintainability |
-| 7 | CSV export (5.5) | Feature | Small | Data portability |
-| 8 | Spending trends chart (5.4) | Feature | Medium | User insight |
-| 9 | Recurring expenses (5.2) | Feature | Large | Saves manual work |
-| 10 | Offline edits phase 3.2 (4.2) | Feature | Large | Full offline support |
-| 11 | Retry logic phase 4 (4.3) | Feature | Medium | Reliability |
-| 12 | Budget alerts (5.3) | Feature | Medium | Proactive tracking |
-| 13 | Extract loadData pattern (3.2) | Refactor | Medium | Code quality |
-| 14 | Rails test suite (2.3) | Testing | Large | Backend safety |
+| 5 | **JWT expired handling (1.4)** | Bug | Small | Critical — prevents silent failures |
+| 6 | **Expense delete confirmation (1.5)** | Bug | Small | Prevents accidental data loss |
+| 7 | "Jump to Today" on Dashboard (5.6) | Feature | Tiny | Obvious UX win |
+| 8 | Test suite doc drift fix (9.5) | Process | Tiny | Keeps docs accurate |
+| 9 | Settings tab (5.1) | Feature | Medium | User needs this |
+| 10 | Session-share 3 test classes (9.4) | Testing | Small | 25 login cycles saved |
+| 11 | Additional offline queue tests (9.6) | Testing | Small | Covers race conditions |
+| 12 | CSV export (5.5) | Feature | Small | Data portability |
+| 13 | Split FinalDashboardView (3.1) | Refactor | Medium | Maintainability |
+| 14 | Spending trends chart (5.4) | Feature | Medium | User insight |
+| 15 | Cache staleness / TTL (1.6) | Bug | Medium | Multi-device consistency |
+| 16 | History pagination (5.7) | Feature | Medium | Scales for large datasets |
+| 17 | Recurring expenses (5.2) | Feature | Large | Saves manual work |
+| 18 | Offline edits phase 3.2 (4.2) | Feature | Large | Full offline support |
+| 19 | Retry logic phase 4 (4.3) | Feature | Medium | Reliability |
+| 20 | Budget alerts (5.3) | Feature | Medium | Proactive tracking |
+| 21 | Extract loadData pattern (3.2) | Refactor | Medium | Code quality |
+| 22 | Rails test suite (2.3) | Testing | Large | Backend safety |
+| 23 | CI pipeline (9.1) | Process | Medium | Catches regressions in main |
+| 24 | Version/release discipline (9.2) | Process | Small | Change tracking |
+| 25 | Production monitoring (9.3) | Process | Medium | Proactive Pi alerts |
+| 26 | Dark mode QA (5.8) | Polish | Small | Visual correctness |
+| 27 | Localization (5.9) | Polish | Large | Only needed if sharing app |
 
 ---
 
