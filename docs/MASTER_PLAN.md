@@ -30,20 +30,12 @@ Updated: 2026-04-20
 5. `fetchWithCache()` in APIService stays network-first — cache reads happen in views
 6. All mutations call `CacheService.shared.invalidate(forKey:)` for affected cache keys
 
-### 1.4 Handle Expired JWT (CRITICAL)
-**Status:** Not handled
-**Issue:** JWT expires after 90 days. When it does, users get silent failures on every API call (401 responses).
-**Fix:** In `APIService.makeRequest()`, detect HTTP 401 and:
-1. Clear the token via `KeychainManager.shared.deleteToken()`
-2. Trigger `AuthManager.shared.logout()` — kicks user back to login screen
-3. Show "Session expired — please log in again" message
-
-### 1.5 Expense Delete Confirmation
+### 1.4 Expense Delete Confirmation
 **Status:** Missing
 **Issue:** Swipe-to-delete on expenses is instant — fat-finger risk, no way to undo. Categories have a confirmation alert ("Delete Category?"), expenses don't.
 **Fix:** Add confirmation alert on `HistoryView`/`OptimizedHistoryView` swipe-delete, matching the category pattern.
 
-### 1.6 Cache Staleness (No TTL)
+### 1.5 Cache Staleness (No TTL)
 **Status:** Known limitation
 **Issue:** `CacheService.load()` never expires cached data. If an expense is deleted on the Pi web UI, the iPhone keeps showing it indefinitely until the user triggers a mutation that invalidates the cache.
 **Possible fix:** Add a soft TTL (e.g., 24 hours) — cache entries older than TTL are still served instantly but trigger a background refresh even without user action. Or: invalidate all caches on app launch.
@@ -293,29 +285,28 @@ Implemented: OfflineQueueService, PendingChangesView, auto-sync on foreground, 6
 | 2 | Sleep replacement (2.2) | Testing | Small | 30-60s faster runs |
 | 3 | Password Manager fix (1.1) | Bug | Small | Eliminates test flakiness |
 | 4 | test.sh coverage revert (1.2) | Bug | Tiny | Correctness |
-| 5 | **JWT expired handling (1.4)** | Bug | Small | Critical — prevents silent failures |
-| 6 | **Expense delete confirmation (1.5)** | Bug | Small | Prevents accidental data loss |
-| 7 | "Jump to Today" on Dashboard (5.6) | Feature | Tiny | Obvious UX win |
-| 8 | Test suite doc drift fix (9.5) | Process | Tiny | Keeps docs accurate |
-| 9 | Settings tab (5.1) | Feature | Medium | User needs this |
-| 10 | Session-share 3 test classes (9.4) | Testing | Small | 25 login cycles saved |
-| 11 | Additional offline queue tests (9.6) | Testing | Small | Covers race conditions |
-| 12 | CSV export (5.5) | Feature | Small | Data portability |
-| 13 | Split FinalDashboardView (3.1) | Refactor | Medium | Maintainability |
-| 14 | Spending trends chart (5.4) | Feature | Medium | User insight |
-| 15 | Cache staleness / TTL (1.6) | Bug | Medium | Multi-device consistency |
-| 16 | History pagination (5.7) | Feature | Medium | Scales for large datasets |
-| 17 | Recurring expenses (5.2) | Feature | Large | Saves manual work |
-| 18 | Offline edits phase 3.2 (4.2) | Feature | Large | Full offline support |
-| 19 | Retry logic phase 4 (4.3) | Feature | Medium | Reliability |
-| 20 | Budget alerts (5.3) | Feature | Medium | Proactive tracking |
-| 21 | Extract loadData pattern (3.2) | Refactor | Medium | Code quality |
-| 22 | Rails test suite (2.3) | Testing | Large | Backend safety |
-| 23 | CI pipeline (9.1) | Process | Medium | Catches regressions in main |
-| 24 | Version/release discipline (9.2) | Process | Small | Change tracking |
-| 25 | Production monitoring (9.3) | Process | Medium | Proactive Pi alerts |
-| 26 | Dark mode QA (5.8) | Polish | Small | Visual correctness |
-| 27 | Localization (5.9) | Polish | Large | Only needed if sharing app |
+| 5 | **Expense delete confirmation (1.4)** | Bug | Small | Prevents accidental data loss |
+| 6 | "Jump to Today" on Dashboard (5.6) | Feature | Tiny | Obvious UX win |
+| 7 | Test suite doc drift fix (9.5) | Process | Tiny | Keeps docs accurate |
+| 8 | Settings tab (5.1) | Feature | Medium | User needs this |
+| 9 | Session-share 3 test classes (9.4) | Testing | Small | 25 login cycles saved |
+| 10 | Additional offline queue tests (9.6) | Testing | Small | Covers race conditions |
+| 11 | CSV export (5.5) | Feature | Small | Data portability |
+| 12 | Split FinalDashboardView (3.1) | Refactor | Medium | Maintainability |
+| 13 | Spending trends chart (5.4) | Feature | Medium | User insight |
+| 14 | Cache staleness / TTL (1.5) | Bug | Medium | Multi-device consistency |
+| 15 | History pagination (5.7) | Feature | Medium | Scales for large datasets |
+| 16 | Recurring expenses (5.2) | Feature | Large | Saves manual work |
+| 17 | Offline edits phase 3.2 (4.2) | Feature | Large | Full offline support |
+| 18 | Retry logic phase 4 (4.3) | Feature | Medium | Reliability |
+| 19 | Budget alerts (5.3) | Feature | Medium | Proactive tracking |
+| 20 | Extract loadData pattern (3.2) | Refactor | Medium | Code quality |
+| 21 | Rails test suite (2.3) | Testing | Large | Backend safety |
+| 22 | CI pipeline (9.1) | Process | Medium | Catches regressions in main |
+| 23 | Version/release discipline (9.2) | Process | Small | Change tracking |
+| 24 | Production monitoring (9.3) | Process | Medium | Proactive Pi alerts |
+| 25 | Dark mode QA (5.8) | Polish | Small | Visual correctness |
+| 26 | Localization (5.9) | Polish | Large | Only needed if sharing app |
 
 ---
 
