@@ -264,33 +264,94 @@ Implemented: OfflineQueueService, PendingChangesView, auto-sync on foreground, 6
 
 ---
 
+## 10. Security
+
+Self-hosted single-user context means most threats are low-severity, but data-at-rest and data-in-transit still matter if the phone is lost or used on untrusted networks.
+
+### 10.1 Controller user-scoping audit (CRITICAL)
+**Risk:** A single controller endpoint that uses `Model.find(params[:id])` instead of `@current_user.things.find(params[:id])` allows any authenticated user to read/modify any other user's data by guessing IDs.
+**Scope:** Grep every `/app/controllers/api/v1/*.rb` for `.find(` or `.where(` that isn't scoped via `@current_user` or `current_user`. Document findings. Fix any gaps.
+**Verification:** Once Rails test suite exists (2.3), add tests that attempt cross-user access and expect 404.
+
+### 10.2 Debug logs leak JWT tokens
+**Risk:** `APIService.login()` has `print("🔑 Login response: \(responseString)")` which logs the full JWT. Visible via Console.app when device is connected to Mac.
+**Fix:** Wrap token-adjacent logs in `#if DEBUG`. Strip the `token` field from the logged response before printing. Audit all `print(...)` calls in `Services/APIService.swift` for sensitive data.
+
+### 10.3 JWT server-side blocklist on logout
+**Risk:** When user logs out, the token is deleted client-side but remains valid on the server until 90-day expiry. A captured token (e.g. from a backup, a shared device, or via #10.5 HTTP) can be used until it expires.
+**Fix:** Rails-side blocklist table (`blocklisted_jwts`: jti, expires_at). `ApplicationController` checks token's `jti` against blocklist before authorizing. Logout endpoint adds jti to blocklist. Periodic cleanup job removes entries past `expires_at`.
+**Effort:** Medium. Also unblocks JWT rotation (10.6).
+
+### 10.4 Login rate limiting
+**Risk:** `/api/v1/auth/login` has no throttling. BCrypt slows brute force but doesn't prevent it. Also applies to other endpoints — a buggy client could DOS the Pi.
+**Fix:** Add `rack-attack` gem. Throttle `/auth/login` to 5 attempts/minute per IP. Throttle API writes to 60 requests/minute per user.
+
+### 10.5 HTTPS / encrypted transport to the Pi
+**Risk:** Current setup is `http://192.168.1.99:3000` — plaintext. On home Wi-Fi this is low risk; on public Wi-Fi the JWT and all expense data are in the clear.
+**Fix options:**
+- **Tailscale** (recommended for self-hosted): WireGuard tunnel, phone and Pi on the same tailnet, works over any network
+- **Self-signed cert + iOS trust anchor**: more complex, requires ATS exception
+- **Local CA + real domain via Cloudflare Tunnel**: most flexible but extra moving parts
+
+### 10.6 JWT secret rotation procedure
+**Risk:** If `Rails.application.credentials.secret_key_base` leaks (via a mistaken commit, a compromised Pi, etc.), every issued token becomes forgeable.
+**Fix:** Document a rotation runbook. Requires (10.3) blocklist to avoid invalidating active sessions wholesale — or accept forced re-login for all users.
+
+### 10.7 iOS Keychain accessibility level
+**Risk:** Default keychain accessibility may allow reading from iCloud backups or when device is locked. For JWTs this should be the most restrictive level.
+**Fix:** Verify `KeychainManager.shared.saveToken` uses `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`. Not in iCloud backups, only readable when device is unlocked.
+
+### 10.8 Mass-assignment audit
+**Risk:** Controllers that pass `params` directly to `Model.create`/`update` without strong params can have unintended fields set (e.g. `user_id`, `admin`, timestamps).
+**Fix:** `@reviewer` agent checks for `permit!` but hasn't audited all existing controllers. Manually review each `create`/`update` call for explicit `.permit(...)` allowlists.
+
+### 10.9 CSV upload validation
+**Risk:** `ExpenseUploadsController` accepts uploads with no size limit or content-type check beyond extension. A malicious large file could DOS disk. A renamed macro-enabled spreadsheet could try to exploit the CSV parser.
+**Fix:** Cap upload size (e.g. 2 MB). Validate content-type is `text/csv`. Consider running parser in a sandboxed Rack middleware.
+
+### 10.10 SQL injection surface in search
+**Risk:** History search does `description ILIKE '%...%'`. If parameters are string-interpolated instead of using Rails parameterized queries, it's exploitable.
+**Fix:** Grep `app/controllers/**/*.rb` for `ILIKE` and `LIKE` patterns. Verify each uses `?` placeholders or named parameters, never `"%#{params[:x]}%"` interpolation. Rails' `.where("description ILIKE ?", "%#{query}%")` is safe; `.where("description ILIKE '%#{query}%'")` is not.
+
+---
+
 ## 6. Priority Order
 
 | # | Item | Type | Effort | Impact |
 |---|------|------|--------|--------|
-| 1 | Test coverage gaps (2.1) | Testing | Small | Catches regressions |
-| 2 | Sleep replacement (2.2) | Testing | Small | 30-60s faster runs |
-| 3 | Password Manager fix (1.1) | Bug | Small | Eliminates test flakiness |
-| 4 | test.sh coverage revert (1.2) | Bug | Tiny | Correctness |
-| 5 | Settings tab (5.1) | Feature | Medium | User needs this |
-| 6 | Session-share 3 test classes (9.4) | Testing | Small | 25 login cycles saved |
-| 7 | Additional offline queue tests (9.5) | Testing | Small | Covers race conditions |
-| 8 | CSV export (5.5) | Feature | Small | Data portability |
-| 9 | Split FinalDashboardView (3.1) | Refactor | Medium | Maintainability |
-| 10 | Spending trends chart (5.4) | Feature | Medium | User insight |
-| 11 | Cache staleness / TTL (1.4) | Bug | Medium | Multi-device consistency |
-| 12 | History pagination (5.6) | Feature | Medium | Scales for large datasets |
-| 13 | Recurring expenses (5.2) | Feature | Large | Saves manual work |
-| 14 | Offline edits phase 3.2 (4.2) | Feature | Large | Full offline support |
-| 15 | Retry logic phase 4 (4.3) | Feature | Medium | Reliability |
-| 16 | Budget alerts (5.3) | Feature | Medium | Proactive tracking |
-| 17 | Extract loadData pattern (3.2) | Refactor | Medium | Code quality |
-| 18 | Rails test suite (2.3) | Testing | Large | Backend safety |
-| 19 | CI pipeline (9.1) | Process | Medium | Catches regressions in main |
-| 20 | Version/release discipline (9.2) | Process | Small | Change tracking |
-| 21 | Production monitoring (9.3) | Process | Medium | Proactive Pi alerts |
-| 22 | Dark mode QA (5.7) | Polish | Small | Visual correctness |
-| 23 | Localization (5.8) | Polish | Large | Only needed if sharing app |
+| 1 | **Controller user-scoping audit (10.1)** | Security | Small | Critical — cross-user data leak risk |
+| 2 | **Debug logs leak tokens (10.2)** | Security | Tiny | Token visible via Console.app |
+| 3 | Test coverage gaps (2.1) | Testing | Small | Catches regressions |
+| 4 | Sleep replacement (2.2) | Testing | Small | 30-60s faster runs |
+| 5 | Password Manager fix (1.1) | Bug | Small | Eliminates test flakiness |
+| 6 | test.sh coverage revert (1.2) | Bug | Tiny | Correctness |
+| 7 | Keychain accessibility level (10.7) | Security | Tiny | Restricts token access |
+| 8 | Mass-assignment audit (10.8) | Security | Small | Defensive |
+| 9 | SQL injection audit on ILIKE (10.10) | Security | Small | Defensive |
+| 10 | Login rate limiting (10.4) | Security | Small | Brute-force prevention |
+| 11 | Settings tab (5.1) | Feature | Medium | User needs this |
+| 12 | Session-share 3 test classes (9.4) | Testing | Small | 25 login cycles saved |
+| 13 | Additional offline queue tests (9.5) | Testing | Small | Covers race conditions |
+| 14 | CSV export (5.5) | Feature | Small | Data portability |
+| 15 | CSV upload validation (10.9) | Security | Small | DOS + malformed input |
+| 16 | Split FinalDashboardView (3.1) | Refactor | Medium | Maintainability |
+| 17 | Spending trends chart (5.4) | Feature | Medium | User insight |
+| 18 | Cache staleness / TTL (1.4) | Bug | Medium | Multi-device consistency |
+| 19 | History pagination (5.6) | Feature | Medium | Scales for large datasets |
+| 20 | JWT blocklist on logout (10.3) | Security | Medium | Token revocation |
+| 21 | HTTPS / Tailscale to Pi (10.5) | Security | Medium | Encrypted transport |
+| 22 | Recurring expenses (5.2) | Feature | Large | Saves manual work |
+| 23 | Offline edits phase 3.2 (4.2) | Feature | Large | Full offline support |
+| 24 | Retry logic phase 4 (4.3) | Feature | Medium | Reliability |
+| 25 | Budget alerts (5.3) | Feature | Medium | Proactive tracking |
+| 26 | Extract loadData pattern (3.2) | Refactor | Medium | Code quality |
+| 27 | Rails test suite (2.3) | Testing | Large | Backend safety |
+| 28 | CI pipeline (9.1) | Process | Medium | Catches regressions in main |
+| 29 | Version/release discipline (9.2) | Process | Small | Change tracking |
+| 30 | Production monitoring (9.3) | Process | Medium | Proactive Pi alerts |
+| 31 | JWT secret rotation runbook (10.6) | Security | Small | Docs only; needs 10.3 first |
+| 32 | Dark mode QA (5.7) | Polish | Small | Visual correctness |
+| 33 | Localization (5.8) | Polish | Large | Only needed if sharing app |
 
 ---
 
