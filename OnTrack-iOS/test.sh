@@ -556,10 +556,10 @@ if [ "${#NORMALIZED_TESTS[@]}" -eq 0 ]; then
     RUN_SUITE=true
 fi
 
-#    if [ "$COVERAGE_MODE" = true ] && [ "$RUN_SUITE" = false ]; then
-#        error "--coverage can only be used when running the full test suite"
-#        exit 1
-#    fi
+if [ "$COVERAGE_MODE" = true ] && [ "$RUN_SUITE" = false ]; then
+    error "--coverage can only be used when running the full test suite"
+    exit 1
+fi
 if [ "$COVERAGE_MODE" = true ] && [ "$ISOLATED_MODE" = true ]; then
     warn "--coverage is not supported in isolated mode; disabling coverage"
     COVERAGE_MODE=false
@@ -621,8 +621,6 @@ else
         for test_id in "${NORMALIZED_TESTS[@]}"; do
             ONLY_TESTING_ARGS+=(-only-testing:OnTrackUITests/"$test_id")
         done
-        # TODO: Revert this to disable coverage for targeted tests after verification
-        # COVERAGE_MODE=false
     fi
 
     exit_code=0
