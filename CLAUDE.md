@@ -63,6 +63,15 @@ The iOS app has a full UI test suite. See the iOS App section below for details.
 npx eslint app/javascript
 ```
 
+### Commit Protocol
+Before every `git commit` (parent repo or iOS submodule):
+1. Run `/check` (fast pattern scan).
+2. Invoke the `@reviewer` subagent (`/review` skill) with a comprehensive prompt — covers architecture, concurrency, security, test gaps that pattern scans miss.
+3. Address **BLOCKING** issues. **Warnings** are decided case-by-case: fix now, or backlog to `docs/features/<feature>_backlog.md` with file:line citation and recommended fix.
+4. Only then commit.
+
+Skip only for trivial non-code changes (README typos, .gitignore tweaks).
+
 ## Architecture
 
 ### Technology Stack

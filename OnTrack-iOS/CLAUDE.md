@@ -53,3 +53,14 @@ bash OnTrack-iOS/test_server.sh start
 ```
 
 Tests use a cloned copy of the production DB (fetched from djpi via SSH on first run). `DatabaseHelper.swift` provides direct DB access for setup/teardown in tests.
+
+### Test-run logging pattern (for Claude)
+
+Always tee test output to a visible log file and tell the user the path so they can `tail -f` it live:
+
+```bash
+bash OnTrack-iOS/test.sh --serial <Class>  2>&1 | tee .temp/<descriptive>_test.log
+```
+
+- **Do NOT** pipe through `| tail -3` or similar — it hides the live stream from the user.
+- When analyzing a failure, **read the full log** (`Read` the `.temp/...log` file, plus the xcodebuild log at `/tmp/ontrack_tests_<timestamp>.log` which has the `file.swift:N: error: ...` lines). Do not grep for fragments.
