@@ -37,6 +37,12 @@ Rails.application.routes.draw do
       resources :savings_goals do
         resources :savings_contributions, only: [:index, :create, :destroy]
       end
+      resources :recurring_expenses, only: [:index, :create, :destroy, :update] do
+        member do
+          post :confirm
+          post :skip
+        end
+      end
     end
   end
 

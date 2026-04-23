@@ -3,6 +3,7 @@ class User < ApplicationRecord
   has_many :categories
   has_many :savings_goals
   has_many :savings_contributions
+  has_many :recurring_expenses
 
   validates_uniqueness_of :login_id, allow_nil: true
 

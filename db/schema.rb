@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2026_03_30_100729) do
+ActiveRecord::Schema.define(version: 2026_04_23_050059) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -46,6 +46,20 @@ ActiveRecord::Schema.define(version: 2026_03_30_100729) do
     t.index ["category_id"], name: "index_expenses_on_category_id"
     t.index ["paid_at"], name: "index_expenses_on_paid_at"
     t.index ["user_id"], name: "index_expenses_on_user_id"
+  end
+
+  create_table "recurring_expenses", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "category_id", null: false
+    t.text "description", null: false
+    t.integer "amount", null: false
+    t.string "frequency", null: false
+    t.date "next_due_date", null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["next_due_date"], name: "index_recurring_expenses_on_next_due_date"
+    t.index ["user_id"], name: "index_recurring_expenses_on_user_id"
   end
 
   create_table "savings_contributions", force: :cascade do |t|
