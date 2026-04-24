@@ -13,6 +13,12 @@ UITESTS_DIR="$IOS_PROJECT_DIR/OnTrackUITests/Flows"
 COVERAGE_FILE="/Users/djamgade/personal/ontrack/ontrack/OnTrack-iOS/COVERAGE_SUMMARY.txt"
 SERVER_COMMAND="$SCRIPT_DIR/test_server.sh"
 
+# Log directory — inside the repo so sandbox allows writes and user can
+# watch live via `tail -f ontrack/.temp/<log>`. Gitignored via .temp/ rule.
+# Derived from SCRIPT_DIR so the script is portable across clones/hosts.
+LOG_DIR="$(cd "$SCRIPT_DIR/.." && pwd)/.temp"
+mkdir -p "$LOG_DIR"
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -186,7 +192,7 @@ build_for_testing() {
         -project "$PROJECT_FILE" \
         -scheme "$SCHEME_NAME" \
         -destination "platform=iOS Simulator,name=$SIMULATOR_NAME,OS=latest" \
-        > /tmp/xcode_build.log 2>&1
+        > "$LOG_DIR/xcode_build.log" 2>&1
     success "Build succeeded"
 }
 
@@ -260,7 +266,7 @@ update_coverage_summary() {
     fi
 
     local report_json
-    report_json="$(mktemp /tmp/ontrack_coverage_report_json.XXXXXX)"
+    report_json="$(mktemp "$LOG_DIR/ontrack_coverage_report_json.XXXXXX")"
     if ! xcrun xccov view --report --json "$xcresult_bundle" > "$report_json" 2>/dev/null; then
         warn "Failed to generate xccov report; skipping coverage summary update"
         rm -f "$report_json"
@@ -272,7 +278,7 @@ update_coverage_summary() {
     success "Saved coverage JSON to $SCRIPT_DIR/coverage.json"
 
     local tests_json
-    tests_json="$(mktemp /tmp/ontrack_tests_report_json.XXXXXX)"
+    tests_json="$(mktemp "$LOG_DIR/ontrack_tests_report_json.XXXXXX")"
     if ! xcrun xcresulttool get --path "$xcresult_bundle" --format json --legacy > "$tests_json"; then
         warn "Failed to fetch xcresult metadata; tests summary will be limited"
         rm -f "$tests_json"
@@ -446,7 +452,7 @@ run_isolated_tests() {
         shutdown_simulators
         boot_simulator
 
-        local single_log="/tmp/ontrack_isolated_${test_id//\//_}_$(date +%Y%m%d_%H%M%S).log"
+        local single_log="$LOG_DIR/ontrack_isolated_${test_id//\//_}_$(date +%Y%m%d_%H%M%S).log"
         local filtered="(Test Case.*(passed|failed)|error:|warning:)"
         ONLY_TESTING_ARGS=(-only-testing:OnTrackUITests/"$test_id")
         if run_xcodebuild "test" "$filtered" "$single_log"; then
@@ -602,8 +608,8 @@ fi
 ensure_server_running
 build_for_testing
 
-LOG_FILE="/tmp/ontrack_tests_$(date +%Y%m%d_%H%M%S).log"
-XCRESULT_BUNDLE="/tmp/OnTrackTestResults_$(date +%Y%m%d_%H%M%S).xcresult"
+LOG_FILE="$LOG_DIR/ontrack_tests_$(date +%Y%m%d_%H%M%S).log"
+XCRESULT_BUNDLE="$LOG_DIR/OnTrackTestResults_$(date +%Y%m%d_%H%M%S).xcresult"
 
 if [ "$ISOLATED_MODE" = true ]; then
     if run_isolated_tests "$LOG_FILE"; then

@@ -8,9 +8,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="/Users/djamgade/personal/ontrack/ontrack"
 IOS_ROOT="/Users/djamgade/personal/ontrack/ontrack/OnTrack-iOS/OnTrack"
-PID_FILE="/tmp/test_server.pid"
-SERVER_LOG="/tmp/test_server.log"
-DEFAULT_LOG_GLOB="/tmp/ontrack_*"
+LOG_DIR="$(cd "$SCRIPT_DIR/.." && pwd)/.temp"
+mkdir -p "$LOG_DIR"
+PID_FILE="$LOG_DIR/test_server.pid"
+SERVER_LOG="$LOG_DIR/test_server.log"
+DEFAULT_LOG_GLOB="$LOG_DIR/ontrack_*"
 
 # Colors
 RED='\033[0;31m'
@@ -113,10 +115,10 @@ is_server_running() {
 clean_logs() {
     log "Cleaning up logs..."
     rm -f "$SERVER_LOG" 2>/dev/null || true
-    rm -f /tmp/ontrack_full_test_*.log 2>/dev/null || true
-    rm -f /tmp/ontrack_tests_*.log 2>/dev/null || true
-    rm -f /tmp/single_test_*.log 2>/dev/null || true
-    rm -f /tmp/ontrack_isolated_tests.log 2>/dev/null || true
+    rm -f "$LOG_DIR"/ontrack_full_test_*.log 2>/dev/null || true
+    rm -f "$LOG_DIR"/ontrack_tests_*.log 2>/dev/null || true
+    rm -f "$LOG_DIR"/single_test_*.log 2>/dev/null || true
+    rm -f "$LOG_DIR"/ontrack_isolated_tests.log 2>/dev/null || true
     success "Logs cleaned"
 }
 
