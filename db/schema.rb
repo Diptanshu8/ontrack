@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2026_04_23_050059) do
+ActiveRecord::Schema.define(version: 2026_04_27_101148) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -42,9 +42,11 @@ ActiveRecord::Schema.define(version: 2026_04_23_050059) do
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.bigint "user_id"
+    t.string "client_id"
     t.index ["amount"], name: "index_expenses_on_amount"
     t.index ["category_id"], name: "index_expenses_on_category_id"
     t.index ["paid_at"], name: "index_expenses_on_paid_at"
+    t.index ["user_id", "client_id"], name: "index_expenses_on_user_id_and_client_id", unique: true, where: "(client_id IS NOT NULL)"
     t.index ["user_id"], name: "index_expenses_on_user_id"
   end
 

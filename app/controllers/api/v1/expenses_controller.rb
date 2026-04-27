@@ -34,9 +34,27 @@ module Api; module V1
     end
 
     def create
-      expense = @current_user.expenses.new(description: params[:description], category_id: params[:category_id], amount: params[:amount], paid_at: params[:paid_at])
+      # Idempotency: if the client supplied a client_id and we already have a
+      # row for it, return that row instead of creating a duplicate. The DB
+      # partial unique index on (user_id, client_id) is the real guarantee;
+      # the find_by short-circuits the common case to avoid an exception path.
+      if (key = params[:client_id].presence) && (existing = @current_user.expenses.find_by(client_id: key))
+        return render json: existing, status: 200
+      end
+
+      expense = @current_user.expenses.new(
+        description: params[:description],
+        category_id: params[:category_id],
+        amount: params[:amount],
+        paid_at: params[:paid_at],
+        client_id: params[:client_id]
+      )
       successful = expense.save
       render json: expense, status: successful ? 200 : 500
+    rescue ActiveRecord::RecordNotUnique
+      # Lost a race with a concurrent retry — fetch and return the winner.
+      expense = @current_user.expenses.find_by(client_id: params[:client_id])
+      render json: expense, status: 200
     end
 
     def bulk_create
