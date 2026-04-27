@@ -32,6 +32,15 @@ Not just `http://localhost:3001` — the `/api/v1` suffix is mandatory.
 ### Amount Storage
 Amounts in the API are stored as **integers in cents** (e.g. ₹87,144 = `8714400`). Divide by 100 to get display value. The `APIService` handles this conversion — don't do it manually in views.
 
+### Idempotent Writes
+`POST /api/v1/expenses` is idempotent — clients send a `client_id` UUID and the server returns the existing row on retry. `ExpenseCreate` defaults `clientId` to a fresh UUID, so existing call sites get this for free. Apply the same pattern (client UUID + partial unique index) to any new mutation endpoint that the offline queue might retry.
+
+### Codable + Persisted Payloads
+Any Codable struct that's persisted (offline queue, CacheService, UserDefaults) needs a custom `init(from:)` if you add a required field — use `decodeIfPresent` with a default. Otherwise legacy payloads strand permanently after upgrade. See `ExpenseCreate.init(from:)` in `Models/Expense.swift` for the template.
+
+### Deploy → iPhone
+`/deploy-ios` runs `devicectl install` which **doesn't kill the running app**. After deploy, the user must force-quit + relaunch (or uninstall + reinstall) to see new code. The actual binary is in `OnTrack.app/OnTrack.debug.dylib` (Mergeable Libraries pattern) — `strings` on the launcher returns nothing; check the dylib to verify deploys.
+
 ## Architecture Notes
 
 - **No Redux/Context** — state lives in `@State` / `@ObservedObject` in views
