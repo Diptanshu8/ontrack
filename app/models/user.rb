@@ -30,7 +30,8 @@ class User < ApplicationRecord
 
   # Bump on changes to data-bearing User columns. Skip auth/session columns
   # (password, username, login_id) — those don't change what the iOS app shows.
-  # update_column avoids re-firing this callback recursively.
+  # update_column intentionally bypasses ALL callbacks (not just this one) —
+  # safe here because data_updated_at has no validations and no other observers.
   def bump_data_updated_at_if_data_changed
     update_column(:data_updated_at, Time.current) if saved_change_to_monthly_goal?
   end
