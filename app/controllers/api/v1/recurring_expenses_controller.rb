@@ -46,19 +46,25 @@ module Api; module V1
 
     # Atomic: create expense + advance next_due_date, guarded by
     # expected_next_due_date to prevent duplicate commits across devices.
+    # The freshness check runs INSIDE the transaction under SELECT FOR UPDATE,
+    # so two concurrent requests with the same expected_next_due_date can't
+    # both pass the guard — the loser sees the advanced date and gets a 409.
     def confirm
       expected = params[:expected_next_due_date]
-      if @template.next_due_date.iso8601 != expected
-        return render json: { error: "stale", recurring_expense: template_json(@template) }, status: 409
-      end
+      amount   = params.fetch(:amount_override, @template.amount).to_i
 
-      amount    = params.fetch(:amount_override, @template.amount).to_i
-      paid_at   = params[:paid_at].presence || @template.next_due_date.to_datetime
-
-      # Prefix with 🔁 so the expense is visually distinguishable in History/reports
-      # as originating from a recurring template (forensic marker, no schema change).
       expense = nil
+      stale   = false
+
       RecurringExpense.transaction do
+        @template.lock!  # SELECT ... FOR UPDATE
+        if @template.next_due_date.iso8601 != expected
+          stale = true
+          raise ActiveRecord::Rollback
+        end
+        paid_at = params[:paid_at].presence || @template.next_due_date.to_datetime
+        # Prefix with 🔁 so the expense is visually distinguishable in History/reports
+        # as originating from a recurring template (forensic marker, no schema change).
         expense = @current_user.expenses.create!(
           description: "🔁 #{@template.description}",
           amount:      amount,
@@ -66,6 +72,10 @@ module Api; module V1
           paid_at:     paid_at
         )
         @template.advance_next_due_date!
+      end
+
+      if stale
+        return render json: { error: "stale", recurring_expense: template_json(@template) }, status: 409
       end
 
       render json: {
@@ -77,13 +87,25 @@ module Api; module V1
     end
 
     # Atomic: advance next_due_date only (skip this cycle without creating an expense).
+    # Same row-lock guard as `confirm` — concurrent skip+skip or confirm+skip races
+    # can't both succeed.
     def skip
       expected = params[:expected_next_due_date]
-      if @template.next_due_date.iso8601 != expected
+      stale    = false
+
+      RecurringExpense.transaction do
+        @template.lock!
+        if @template.next_due_date.iso8601 != expected
+          stale = true
+          raise ActiveRecord::Rollback
+        end
+        @template.advance_next_due_date!
+      end
+
+      if stale
         return render json: { error: "stale", recurring_expense: template_json(@template) }, status: 409
       end
 
-      @template.advance_next_due_date!
       render json: { recurring_expense: template_json(@template) }, status: 200
     end
 
