@@ -1,7 +1,7 @@
 class RecurringExpense < ApplicationRecord
   FREQUENCIES = %w[monthly weekly yearly].freeze
 
-  belongs_to :user
+  belongs_to :user, touch: :data_updated_at
   belongs_to :category
 
   validates_presence_of :description, :amount, :category_id, :next_due_date, :frequency

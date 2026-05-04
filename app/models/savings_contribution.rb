@@ -1,6 +1,6 @@
 class SavingsContribution < ApplicationRecord
   belongs_to :savings_goal
-  belongs_to :user
+  belongs_to :user, touch: :data_updated_at
   belongs_to :expense, optional: true
 
   validates_presence_of :amount, :contributed_on

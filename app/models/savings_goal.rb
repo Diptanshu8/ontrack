@@ -1,5 +1,5 @@
 class SavingsGoal < ApplicationRecord
-  belongs_to :user
+  belongs_to :user, touch: :data_updated_at
   has_many :savings_contributions, dependent: :destroy
 
   validates_presence_of :name, :target_amount, :color

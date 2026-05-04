@@ -20,6 +20,8 @@ Rails.application.routes.draw do
       post 'auth/login', to: 'auth#login'
       get 'auth/validate', to: 'auth#validate'
 
+      get 'sync/version', to: 'sync#version'
+
       resources :expenses, only: [:index, :create, :destroy, :update] do
         collection do
           post :bulk_create
