@@ -51,7 +51,13 @@ module Api; module V1
     # both pass the guard — the loser sees the advanced date and gets a 409.
     def confirm
       expected = params[:expected_next_due_date]
-      amount   = params.fetch(:amount_override, @template.amount).to_i
+      # Use .present? rather than .fetch — the iOS client today omits the key when
+      # there's no override, but a non-iOS caller (curl, future client) could send
+      # `amount_override: null` explicitly. `params.fetch(:k, default)` returns the
+      # explicit nil (not the default) when the key is present, so `nil.to_i = 0`
+      # would silently create a zero-amount expense. `.present?` treats both absent
+      # and explicit-null correctly.
+      amount   = params[:amount_override].present? ? params[:amount_override].to_i : @template.amount
 
       expense = nil
       stale   = false
